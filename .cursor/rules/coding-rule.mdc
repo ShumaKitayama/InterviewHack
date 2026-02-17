@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+Project Implementation Rules
+	1.	Always Review Existing Implementation Before Coding
+Before writing any new code, always examine the existing implementation. Specifically check:
+	•	Naming conventions for functions and variables
+	•	How comments are structured
+	•	How similar functionality is implemented
+Your new work should follow the patterns already established in the codebase.
+	2.	When Multiple Implementation Options Exist, Follow Established Practice
+If there are multiple ways to implement a feature, first find similar functionality in the existing code. Study how it was done and then implement your feature using the same approach and style.
+	3.	Adhere to All Skills Guidelines and Agent.md Rules
+All contributions must comply with the guidelines outlined in Skills as well as the Agent.md documentation.
+	4.	Always Be Conscious of the Architecture
+Keep the system architecture in mind when implementing features. Understand the architectural decisions and details captured in the design documents, and ensure your implementation aligns with them.
