@@ -37,21 +37,22 @@
 ## 5.3 アプリ構造（ディレクトリ設計）
 
 ```
-src/
-  app/                # アプリの骨格（Router, Providers, Layout）
-  pages/              # 画面単位（Routeと1:1）
-  components/         # 再利用UI
-  features/           # 機能ドメイン単位（assets, companies, qa, interviews, billing, ai）
-  lib/
-    supabase/         # supabase client, auth helper
-    api/              # BFF API client（fetch wrapper）
-    schema/           # zod schema
-    utils/            # 日付、文字数、エラー整形など
-  hooks/              # 共通hooks
-  styles/             # tailwind, global css
-public/
-  manifest.webmanifest
-  icons/
+frontend/
+  src/
+    app/                # アプリの骨格（Router, Providers, Layout）
+    pages/              # 画面単位（Routeと1:1）
+    components/         # 再利用UI
+    features/           # 機能ドメイン単位（assets, companies, qa, interviews, billing, ai）
+    lib/
+      supabase/         # supabase client, auth helper
+      api/              # BFF API client（fetch wrapper）
+      schema/           # zod schema
+      utils/            # 日付、文字数、エラー整形など
+    hooks/              # 共通hooks
+    styles/             # tailwind, global css
+  public/
+    manifest.webmanifest
+    icons/
 ```
 
 ---
