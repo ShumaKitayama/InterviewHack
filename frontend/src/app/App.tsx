@@ -1,0 +1,12 @@
+// DesignDocument/5_FrontendDesign.md 5.3
+import { RouterProvider } from "react-router-dom";
+import { Providers } from "./providers";
+import { router } from "./routes";
+
+export default function App() {
+  return (
+    <Providers>
+      <RouterProvider router={router} />
+    </Providers>
+  );
+}

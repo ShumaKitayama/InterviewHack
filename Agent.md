@@ -67,11 +67,10 @@ Pre-flight checklist (before you start):
 
 ### Prerequisites
 
-- Node.js 20+
-- Go 1.22+
-- Supabase CLI (for local emulation if needed)
-- Stripe CLI (for webhook testing)
-- Environment variables configured for dev/stg/prod
+- Node.js 20.14.0+
+- Go 1.24.5+
+- Supabase MCP
+- Stripe CLI (for webhook testing) and MCP
 
 ### Setup Commands
 
@@ -344,3 +343,28 @@ Production requires manual approval in CI.
 - Agents **must not implement changes without updating designs**
 - If differences appear, **reflect them back into the design docs**
 
+---
+
+### Task Completion Report (Mandatory)
+
+When a task is completed, you must output a report in Markdown format under the `ai_message_log` directory.
+
+The report must include:
+
+- What was implemented
+- Why that implementation was chosen
+- Issues encountered
+- How those issues were resolved
+- What remains to be done
+- **Completion percentage (%)** and its rationale — break down by design document or component area, stating which parts are **done**, **in-progress**, and **not-yet-started**. The percentage must be grounded in concrete deliverables (files, features, tests) relative to the design specification, not a subjective estimate.
+
+The file name must follow this format:
+`YYYYMMDD_HHMMSS_<number>.md`  
+(i.e., today’s date + current time + a sequence number)
+
+---
+
+### Documentation Maintenance
+
+Update `README.md` and `AGENTS.md` whenever you think it is necessary.  
+In particular, always keep execution commands and setup instructions up to date and reflect any changes immediately.
