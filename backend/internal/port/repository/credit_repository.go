@@ -17,6 +17,9 @@ type CreditRepository interface {
 	// GetBalance returns the balance without locking (read-only).
 	GetBalance(ctx context.Context, userID string) (*entity.CreditBalance, error)
 
+	// BalanceExists checks if a credit_balances row exists for the given user.
+	BalanceExists(ctx context.Context, userID string) (bool, error)
+
 	// UpsertBalance creates or updates the balance row.
 	UpsertBalance(ctx context.Context, balance *entity.CreditBalance) error
 

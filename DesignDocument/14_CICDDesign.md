@@ -148,12 +148,17 @@ CI/CDでは以下を分離する：
 
 ### 14.8.2 バックエンド（Cloud Run）
 
-- `SUPABASE_JWT_JWKS_URL`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`（推奨）
+- `SUPABASE_ANON_KEY`（フォールバック）
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `OPENAI_API_KEY`
 - `GEMINI_API_KEY`
 - `ENV=stg|prod` など
+
+認証トークン検証は BFF から `GET {SUPABASE_URL}/auth/v1/user` を呼び、`apikey` に
+`SUPABASE_PUBLISHABLE_KEY`（未設定時は `SUPABASE_ANON_KEY`）を付与して行う。
 
 ---
 

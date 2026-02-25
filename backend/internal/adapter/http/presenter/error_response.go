@@ -41,6 +41,18 @@ func RespondError(c *gin.Context, err error) {
 	})
 }
 
+func RespondValidationError(c *gin.Context, err error) {
+	requestID, _ := c.Get("request_id")
+	reqIDStr, _ := requestID.(string)
+
+	c.JSON(http.StatusBadRequest, ErrorBody{
+		Status:    "error",
+		Code:      vo.ErrorCodeValidationError.String(),
+		Message:   err.Error(),
+		RequestID: reqIDStr,
+	})
+}
+
 // DesignDocument/7_BackendDesign.md 7.7.2 HTTPステータスとエラーコード対応表
 func mapCodeToHTTPStatus(code vo.ErrorCode) int {
 	switch code {

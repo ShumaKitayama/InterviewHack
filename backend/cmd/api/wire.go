@@ -12,7 +12,6 @@ import (
 	"github.com/interviewhack/backend/internal/infra/llm"
 	infrastripe "github.com/interviewhack/backend/internal/infra/stripe"
 	"github.com/interviewhack/backend/internal/infra/supabase"
-	"github.com/interviewhack/backend/internal/port/external"
 	"github.com/interviewhack/backend/internal/usecase/ai"
 	"github.com/interviewhack/backend/internal/usecase/billing"
 	"github.com/interviewhack/backend/internal/usecase/credit"
@@ -43,7 +42,7 @@ func initApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// External clients
 	stripeClient := infrastripe.NewStripeClient(cfg.StripeSecretKey, cfg.StripeWebhookSecret)
 	llmClient := llm.NewOpenAIClient(cfg.OpenAIAPIKey)
-	var authVerifier external.AuthVerifier // TODO: implement JWT verifier
+	authVerifier := supabase.NewAuthVerifier(cfg.SupabaseURL, cfg.SupabasePublishableKey, cfg.SupabaseAnonKey)
 
 	// Domain services
 	creditService := service.NewCreditService()
@@ -51,6 +50,7 @@ func initApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// Usecases
 	consumeUC := credit.NewConsumeUsecase(creditRepo, costRepo, creditService, idGen)
 	purchaseUC := credit.NewPurchaseUsecase(creditRepo, idGen)
+	bonusUC := credit.NewBonusUsecase(creditRepo, idGen)
 	checkoutUC := billing.NewCheckoutUsecase(packageRepo, stripeClient, creditService, cfg.CheckoutSuccessURL, cfg.CheckoutCancelURL)
 	webhookUC := billing.NewWebhookUsecase(stripeClient, eventRepo, packageRepo, purchaseUC)
 
@@ -65,7 +65,7 @@ func initApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// Handlers
 	healthHandler := handler.NewHealthHandler()
 	billingHandler := handler.NewBillingHandler(checkoutUC, webhookUC, packageRepo)
-	creditHandler := handler.NewCreditHandler(creditRepo)
+	creditHandler := handler.NewCreditHandler(creditRepo, bonusUC)
 	aiHandler := handler.NewAIHandler(
 		qaGenerateUC, answerReviewUC, summaryGenerateUC,
 		researchSummarizeUC, esGenerateUC, esRefineUC,

@@ -3,7 +3,134 @@
   "darkMode": true,
   "gridEnabling": false,
   "detailLevel": "All",
-  "tablePositions": [],
+  "tablePositions": [
+    {
+      "name": "auth_users",
+      "schemaName": "public",
+      "x": 958.2822265625,
+      "y": 12
+    },
+    {
+      "name": "profiles",
+      "schemaName": "public",
+      "x": 1359.76171875,
+      "y": 53
+    },
+    {
+      "name": "assets",
+      "schemaName": "public",
+      "x": 1423.6466903006522,
+      "y": 260.82528113538524
+    },
+    {
+      "name": "asset_tags",
+      "schemaName": "public",
+      "x": 1394.4419831535492,
+      "y": 585.698875458459
+    },
+    {
+      "name": "asset_tag_relations",
+      "schemaName": "public",
+      "x": 1963.0009765625,
+      "y": 74
+    },
+    {
+      "name": "companies",
+      "schemaName": "public",
+      "x": 1359.76171875,
+      "y": 768
+    },
+    {
+      "name": "research_materials",
+      "schemaName": "public",
+      "x": 1963.0009765625,
+      "y": 216
+    },
+    {
+      "name": "es_projects",
+      "schemaName": "public",
+      "x": 1963.0009765625,
+      "y": 614
+    },
+    {
+      "name": "es_sections",
+      "schemaName": "public",
+      "x": 2566.240234375,
+      "y": 12
+    },
+    {
+      "name": "es_project_asset_relations",
+      "schemaName": "public",
+      "x": 2566.240234375,
+      "y": 410
+    },
+    {
+      "name": "es_project_research_material_relations",
+      "schemaName": "public",
+      "x": 2566.240234375,
+      "y": 552
+    },
+    {
+      "name": "interviews",
+      "schemaName": "public",
+      "x": 1963.0009765625,
+      "y": 916
+    },
+    {
+      "name": "interview_logs",
+      "schemaName": "public",
+      "x": 2566.240234375,
+      "y": 694
+    },
+    {
+      "name": "qa",
+      "schemaName": "public",
+      "x": 1963.0009765625,
+      "y": 1304
+    },
+    {
+      "name": "qa_asset_relations",
+      "schemaName": "public",
+      "x": 2566.240234375,
+      "y": 1124
+    },
+    {
+      "name": "generation_jobs",
+      "schemaName": "public",
+      "x": 1359.76171875,
+      "y": 1166
+    },
+    {
+      "name": "credit_balances",
+      "schemaName": "public",
+      "x": 1359.76171875,
+      "y": 1628
+    },
+    {
+      "name": "credit_transactions",
+      "schemaName": "public",
+      "x": 1359.76171875,
+      "y": 1803
+    },
+    {
+      "name": "stripe_events",
+      "schemaName": "public",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "credit_packages",
+      "schemaName": "public",
+      "x": 655.05419921875,
+      "y": 12
+    },
+    {
+      "name": "credit_costs",
+      "schemaName": "public",
+      "x": 356.05810546875,
+      "y": 12
+    }
+  ],
   "tableGroupCollapseStates": [],
   "stickyNoteLayouts": [],
   "referencePaths": []

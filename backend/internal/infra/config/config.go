@@ -7,34 +7,38 @@ import (
 )
 
 type Config struct {
-	Env                 string
-	Port                string
-	Release             string
-	DatabaseURL         string
-	SupabaseJWTSecret   string
-	StripeSecretKey     string
-	StripeWebhookSecret string
-	OpenAIAPIKey        string
-	GeminiAPIKey        string
-	AllowOrigins        []string
-	CheckoutSuccessURL  string
-	CheckoutCancelURL   string
+	Env                    string
+	Port                   string
+	Release                string
+	DatabaseURL            string
+	SupabaseURL            string
+	SupabasePublishableKey string
+	SupabaseAnonKey        string
+	StripeSecretKey        string
+	StripeWebhookSecret    string
+	OpenAIAPIKey           string
+	GeminiAPIKey           string
+	AllowOrigins           []string
+	CheckoutSuccessURL     string
+	CheckoutCancelURL      string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Env:                 getEnv("ENV", "dev"),
-		Port:                getEnv("PORT", "8080"),
-		Release:             getEnv("RELEASE", "dev"),
-		DatabaseURL:         os.Getenv("DATABASE_URL"),
-		SupabaseJWTSecret:   os.Getenv("SUPABASE_JWT_SECRET"),
-		StripeSecretKey:     os.Getenv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
-		OpenAIAPIKey:        os.Getenv("OPENAI_API_KEY"),
-		GeminiAPIKey:        os.Getenv("GEMINI_API_KEY"),
-		AllowOrigins:        []string{getEnv("ALLOW_ORIGIN", "http://localhost:5173")},
-		CheckoutSuccessURL:  getEnv("CHECKOUT_SUCCESS_URL", "http://localhost:5173/billing?status=success"),
-		CheckoutCancelURL:   getEnv("CHECKOUT_CANCEL_URL", "http://localhost:5173/billing?status=cancel"),
+		Env:                    getEnv("ENV", "dev"),
+		Port:                   getEnv("PORT", "8080"),
+		Release:                getEnv("RELEASE", "dev"),
+		DatabaseURL:            os.Getenv("DATABASE_URL"),
+		SupabaseURL:            os.Getenv("SUPABASE_URL"),
+		SupabasePublishableKey: os.Getenv("SUPABASE_PUBLISHABLE_KEY"),
+		SupabaseAnonKey:        os.Getenv("SUPABASE_ANON_KEY"),
+		StripeSecretKey:        os.Getenv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret:    os.Getenv("STRIPE_WEBHOOK_SECRET"),
+		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
+		GeminiAPIKey:           os.Getenv("GEMINI_API_KEY"),
+		AllowOrigins:           []string{getEnv("ALLOW_ORIGIN", "http://localhost:5173")},
+		CheckoutSuccessURL:     getEnv("CHECKOUT_SUCCESS_URL", "http://localhost:5173/billing?status=success"),
+		CheckoutCancelURL:      getEnv("CHECKOUT_CANCEL_URL", "http://localhost:5173/billing?status=cancel"),
 	}
 
 	if cfg.DatabaseURL == "" {

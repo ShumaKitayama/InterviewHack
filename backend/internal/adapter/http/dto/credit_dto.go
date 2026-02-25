@@ -19,3 +19,11 @@ type TransactionsResponse struct {
 	Items      []TransactionItem `json:"items"`
 	NextCursor *string           `json:"nextCursor"`
 }
+
+// DesignDocument/6_AuthAccountCahrgingDesign.md 6.8 初回ボーナス
+
+type BonusResponse struct {
+	Granted bool `json:"granted"`
+	Credits int  `json:"credits"`
+	Balance int  `json:"balance"`
+}

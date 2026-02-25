@@ -137,6 +137,8 @@ backend/
 - クライアントは Supabase の JWT を取得して BFF に付与
   - Header: Authorization: Bearer <supabase_access_token>
 - BFF は supabase JWT を検証し、user_id を確定する
+  - 検証方式：`GET {SUPABASE_URL}/auth/v1/user` に `Authorization: Bearer <token>` と `apikey` を付与
+  - `apikey` は `SUPABASE_PUBLISHABLE_KEY` を優先し、未設定時は `SUPABASE_ANON_KEY` を利用
 - BFF はリクエストボディの user_id を信用しない（必ずJWTのsubから採用）
 - RLSにより、DB直アクセスでも user_id 越境を防ぐ
 

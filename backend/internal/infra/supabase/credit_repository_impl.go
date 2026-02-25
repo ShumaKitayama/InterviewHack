@@ -52,6 +52,21 @@ func (r *creditRepositoryImpl) GetBalanceForUpdate(ctx context.Context, userID s
 	return &b, nil
 }
 
+func (r *creditRepositoryImpl) BalanceExists(ctx context.Context, userID string) (bool, error) {
+	row := r.client.Pool.QueryRow(ctx,
+		"SELECT 1 FROM credit_balances WHERE user_id = $1", userID,
+	)
+	var dummy int
+	err := row.Scan(&dummy)
+	if err == pgx.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *creditRepositoryImpl) GetBalance(ctx context.Context, userID string) (*entity.CreditBalance, error) {
 	row := r.client.Pool.QueryRow(ctx,
 		"SELECT user_id, balance, updated_at FROM credit_balances WHERE user_id = $1",

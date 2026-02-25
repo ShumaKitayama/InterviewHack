@@ -1,5 +1,5 @@
 // DesignDocument/7_BackendDesign.md 7.2.3 infra/llm
-// Gemini client stub - to be fully implemented when Gemini integration is needed
+// DesignDocument/4_LLMDesign.md 4.4 モデル選定方針
 package llm
 
 import (
@@ -17,7 +17,6 @@ func NewGeminiClient(apiKey string) external.LLMClient {
 	return &geminiClient{apiKey: apiKey}
 }
 
-func (c *geminiClient) Generate(ctx context.Context, req *external.LLMRequest) (*external.LLMResponse, error) {
-	// TODO: Implement Gemini API integration
+func (c *geminiClient) Generate(_ context.Context, _ *external.LLMRequest) (*external.LLMResponse, error) {
 	return nil, fmt.Errorf("gemini client not yet implemented")
 }

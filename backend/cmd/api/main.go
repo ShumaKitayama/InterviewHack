@@ -14,9 +14,14 @@ import (
 	router "github.com/interviewhack/backend/internal/adapter/http"
 	"github.com/interviewhack/backend/internal/infra/config"
 	"github.com/interviewhack/backend/internal/infra/logging"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// ローカル開発時: backend/.env を読み込む（Go は .env を自動読まない）
+	// backend ディレクトリで go run ./cmd/api を実行すること
+	_ = godotenv.Load(".env")
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)

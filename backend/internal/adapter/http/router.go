@@ -35,6 +35,7 @@ func NewRouter(deps *RouterDeps) *gin.Engine {
 
 		billingAuth := billing.Group("")
 		billingAuth.Use(middleware.Auth(deps.AuthVerifier))
+		billingAuth.Use(middleware.RateLimitCheckout())
 		billingAuth.POST("/checkout-session", deps.BillingHandler.CreateCheckoutSession)
 	}
 
@@ -43,10 +44,13 @@ func NewRouter(deps *RouterDeps) *gin.Engine {
 	{
 		credits.GET("/balance", deps.CreditHandler.GetBalance)
 		credits.GET("/transactions", deps.CreditHandler.GetTransactions)
+		credits.POST("/onboarding-bonus", deps.CreditHandler.ClaimOnboardingBonus)
 	}
 
+	// DesignDocument/7_BackendDesign.md 7.8: /ai/ は user_id 単位でレート制限
 	aiGroup := r.Group("/ai")
 	aiGroup.Use(middleware.Auth(deps.AuthVerifier))
+	aiGroup.Use(middleware.RateLimitAI())
 	{
 		aiGroup.POST("/qa-generate", deps.AIHandler.QAGenerate)
 		aiGroup.POST("/answer-review", deps.AIHandler.AnswerReview)

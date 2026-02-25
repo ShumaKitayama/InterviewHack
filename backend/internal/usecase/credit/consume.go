@@ -51,6 +51,9 @@ func (u *ConsumeUsecase) Reserve(ctx context.Context, input *ConsumeInput) (*Con
 	if err != nil {
 		return nil, fmt.Errorf("get cost config: %w", err)
 	}
+	if costConfig == nil {
+		return nil, fmt.Errorf("cost config not found for feature: %s", input.Feature)
+	}
 	if err := u.creditService.ValidateCostConfig(costConfig); err != nil {
 		return nil, err
 	}

@@ -6,14 +6,16 @@ import (
 	"github.com/interviewhack/backend/internal/adapter/http/dto"
 	"github.com/interviewhack/backend/internal/adapter/http/presenter"
 	"github.com/interviewhack/backend/internal/port/repository"
+	"github.com/interviewhack/backend/internal/usecase/credit"
 )
 
 type CreditHandler struct {
 	creditRepo repository.CreditRepository
+	bonusUC    *credit.BonusUsecase
 }
 
-func NewCreditHandler(creditRepo repository.CreditRepository) *CreditHandler {
-	return &CreditHandler{creditRepo: creditRepo}
+func NewCreditHandler(creditRepo repository.CreditRepository, bonusUC *credit.BonusUsecase) *CreditHandler {
+	return &CreditHandler{creditRepo: creditRepo, bonusUC: bonusUC}
 }
 
 // GetBalance handles GET /credits/balance
@@ -32,8 +34,8 @@ func (h *CreditHandler) GetTransactions(c *gin.Context) {
 	userID := c.GetString("user_id")
 	limit := 50
 	var cursor *string
-	if c := c.Query("cursor"); c != "" {
-		cursor = &c
+	if cursorStr := c.Query("cursor"); cursorStr != "" {
+		cursor = &cursorStr
 	}
 
 	txs, nextCursor, err := h.creditRepo.ListTransactions(c.Request.Context(), userID, limit, cursor)
@@ -58,5 +60,22 @@ func (h *CreditHandler) GetTransactions(c *gin.Context) {
 	presenter.RespondOK(c, dto.TransactionsResponse{
 		Items:      items,
 		NextCursor: nextCursor,
+	})
+}
+
+// ClaimOnboardingBonus handles POST /credits/onboarding-bonus
+// DesignDocument/6_AuthAccountCahrgingDesign.md 6.8
+func (h *CreditHandler) ClaimOnboardingBonus(c *gin.Context) {
+	userID := c.GetString("user_id")
+	result, err := h.bonusUC.GrantOnboardingBonus(c.Request.Context(), userID)
+	if err != nil {
+		presenter.RespondError(c, err)
+		return
+	}
+
+	presenter.RespondOK(c, dto.BonusResponse{
+		Granted: result.Granted,
+		Credits: result.Credits,
+		Balance: result.Balance,
 	})
 }

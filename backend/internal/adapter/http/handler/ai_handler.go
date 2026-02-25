@@ -39,7 +39,7 @@ func NewAIHandler(
 func (h *AIHandler) QAGenerate(c *gin.Context) {
 	var req dto.QAGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -47,8 +47,10 @@ func (h *AIHandler) QAGenerate(c *gin.Context) {
 	output, err := h.qaGenerateUC.Execute(c.Request.Context(), &ai.QAGenerateInput{
 		UserID:        userID,
 		CompanyID:     req.CompanyID,
+		CompanyName:   req.CompanyName,
 		JobTitle:      req.JobTitle,
 		AssetIDs:      req.AssetIDs,
+		AssetTexts:    req.AssetTexts,
 		QuestionCount: req.QuestionCount,
 	})
 	if err != nil {
@@ -56,9 +58,18 @@ func (h *AIHandler) QAGenerate(c *gin.Context) {
 		return
 	}
 
+	items := make([]dto.QAItem, 0, len(output.Items))
+	for _, item := range output.Items {
+		items = append(items, dto.QAItem{
+			QuestionText:       item.QuestionText,
+			AnswerText:         item.AnswerText,
+			ReferencedAssetIDs: item.ReferencedAssetIDs,
+		})
+	}
+
 	presenter.RespondOK(c, dto.QAGenerateResponse{
 		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		Items:        items,
 	})
 }
 
@@ -66,7 +77,7 @@ func (h *AIHandler) QAGenerate(c *gin.Context) {
 func (h *AIHandler) AnswerReview(c *gin.Context) {
 	var req dto.AnswerReviewRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -76,6 +87,7 @@ func (h *AIHandler) AnswerReview(c *gin.Context) {
 		QuestionText: req.QuestionText,
 		AnswerText:   req.AnswerText,
 		AssetIDs:     req.AssetIDs,
+		AssetTexts:   req.AssetTexts,
 		Strictness:   req.Strictness,
 	})
 	if err != nil {
@@ -84,8 +96,11 @@ func (h *AIHandler) AnswerReview(c *gin.Context) {
 	}
 
 	presenter.RespondOK(c, dto.AnswerReviewResponse{
-		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		GenerationID:       output.GenerationID,
+		Issues:             output.Issues,
+		Improvements:       output.Improvements,
+		ImprovedAnswerText: output.ImprovedAnswerText,
+		ReferencedAssetIDs: output.ReferencedAssetIDs,
 	})
 }
 
@@ -93,7 +108,7 @@ func (h *AIHandler) AnswerReview(c *gin.Context) {
 func (h *AIHandler) SummaryGenerate(c *gin.Context) {
 	var req dto.SummaryGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -102,6 +117,7 @@ func (h *AIHandler) SummaryGenerate(c *gin.Context) {
 		UserID:          userID,
 		InterviewID:     req.InterviewID,
 		InterviewLogIDs: req.InterviewLogIDs,
+		LogTexts:        req.LogTexts,
 	})
 	if err != nil {
 		presenter.RespondError(c, err)
@@ -109,8 +125,8 @@ func (h *AIHandler) SummaryGenerate(c *gin.Context) {
 	}
 
 	presenter.RespondOK(c, dto.SummaryGenerateResponse{
-		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		GenerationID:   output.GenerationID,
+		SummaryBullets: output.SummaryBullets,
 	})
 }
 
@@ -118,7 +134,7 @@ func (h *AIHandler) SummaryGenerate(c *gin.Context) {
 func (h *AIHandler) ResearchSummarize(c *gin.Context) {
 	var req dto.ResearchSummarizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -134,8 +150,10 @@ func (h *AIHandler) ResearchSummarize(c *gin.Context) {
 	}
 
 	presenter.RespondOK(c, dto.ResearchSummarizeResponse{
-		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		GenerationID:    output.GenerationID,
+		Summary:         output.Summary,
+		KeyPoints:       output.KeyPoints,
+		UsageSuggestion: output.UsageSuggestion,
 	})
 }
 
@@ -143,7 +161,7 @@ func (h *AIHandler) ResearchSummarize(c *gin.Context) {
 func (h *AIHandler) ESGenerate(c *gin.Context) {
 	var req dto.ESGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -153,7 +171,11 @@ func (h *AIHandler) ESGenerate(c *gin.Context) {
 		ESProjectID:         req.ESProjectID,
 		SectionTitle:        req.SectionTitle,
 		AssetIDs:            req.AssetIDs,
+		AssetTexts:          req.AssetTexts,
 		ResearchMaterialIDs: req.ResearchMaterialIDs,
+		ResearchTexts:       req.ResearchTexts,
+		CompanyName:         req.CompanyName,
+		JobTitle:            req.JobTitle,
 		CharacterLimit:      req.CharacterLimit,
 	})
 	if err != nil {
@@ -163,7 +185,8 @@ func (h *AIHandler) ESGenerate(c *gin.Context) {
 
 	presenter.RespondOK(c, dto.ESGenerateResponse{
 		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		DraftText:    output.DraftText,
+		Rationale:    output.Rationale,
 	})
 }
 
@@ -171,7 +194,7 @@ func (h *AIHandler) ESGenerate(c *gin.Context) {
 func (h *AIHandler) ESRefine(c *gin.Context) {
 	var req dto.ESRefineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		presenter.RespondError(c, err)
+		presenter.RespondValidationError(c, err)
 		return
 	}
 
@@ -188,6 +211,7 @@ func (h *AIHandler) ESRefine(c *gin.Context) {
 
 	presenter.RespondOK(c, dto.ESRefineResponse{
 		GenerationID: output.GenerationID,
-		RawContent:   output.RawContent,
+		RefinedText:  output.RefinedText,
+		Changes:      output.Changes,
 	})
 }
