@@ -1,47 +1,42 @@
 // =============================================================================
 // InterviewHack データベーススキーマ定義（DBML）
-// Supabase / PostgreSQL 用
+// Neon / PostgreSQL 用（改訂：2026-10-22。DirectionChange_20261022.md 2.10.2 に準拠）
 // 可視化: https://dbdiagram.io に貼り付けてER図を生成可能
 // =============================================================================
 
 Project InterviewHack {
   database_type: 'PostgreSQL'
-  Note: 'マルチテナント: 全テーブルは user_id で分離。RLS で auth.uid() = user_id を原則とする。'
+  Note: 'マルチテナント: 全テーブルは user_id（users.id）で分離。RLS は使わず、Go BFF の Repository が全クエリに user_id = $1 を付けて認可する。DB へのアクセスは BFF のみ。'
 }
 
 // -----------------------------------------------------------------------------
-// 認証（Supabase管理・アプリからは参照のみ）
+// 8.3 ユーザー
 // -----------------------------------------------------------------------------
-Table auth_users [headercolor: #e3f2fd] {
-  id uuid [pk, note: 'Supabase Auth 管理。アプリからは直接変更しない']
-  Note: 'Supabase Auth が管理（Google OAuth + Email/Password）。アプリ側からは直接変更しない'
-}
-
-// -----------------------------------------------------------------------------
-// 8.2 認証・プロフィール
-// -----------------------------------------------------------------------------
-Table profiles [headercolor: #e8f5e9] {
-  user_id uuid [pk, ref: > auth_users.id]
+Table users [headercolor: #e8f5e9] {
+  id uuid [pk]
+  firebase_uid text [not null, unique, note: 'Firebase Auth のユーザー ID']
+  email text [null]
   display_name text [null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  Note: 'RLS: SELECT/UPDATE/INSERT は auth.uid() = user_id'
+  deleted_at timestamptz [null, note: '退会日時。退会時は email / display_name を消して行を残す（物理削除しない）。設定済みのユーザーは認証失敗（401）']
+  Note: '旧 auth_users / profiles を統合。BFF が ID トークン検証後に firebase_uid で取得または作成する。認証情報（パスワード等）は保持しない'
 }
 
 // -----------------------------------------------------------------------------
-// 8.3 コアドメイン - 自己資産・タグ
+// 8.4 コアドメイン - 自己資産・タグ
 // -----------------------------------------------------------------------------
 Table assets [headercolor: #fff3e0] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   type text [not null, note: 'academic|work|project|skill|strength|weakness|episode|other']
   title text [not null]
   content text [not null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
   deleted_at timestamptz [null]
-  Note: 'RLS: 全操作 auth.uid() = user_id。論理削除: deleted_at'
-  
+  Note: '論理削除: deleted_at'
+
   indexes {
     user_id
     (user_id, created_at) [name: 'idx_assets_user_created_desc']
@@ -50,13 +45,12 @@ Table assets [headercolor: #fff3e0] {
 
 Table asset_tags [headercolor: #fff3e0] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   name text [not null]
-  
+
   indexes {
     (user_id, name) [unique, name: 'uq_asset_tags_user_name']
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
 }
 
 Table asset_tag_relations [headercolor: #fff3e0] {
@@ -65,15 +59,15 @@ Table asset_tag_relations [headercolor: #fff3e0] {
   indexes {
     (asset_id, tag_id) [pk]
   }
-  Note: '自己資産とタグの N:M。RLS は asset / asset_tags の user_id に準拠'
+  Note: '自己資産とタグの N:M。BFF が asset / asset_tags の user_id 一致を確認して書き込む'
 }
 
 // -----------------------------------------------------------------------------
-// 8.3 コアドメイン - 企業・面接
+// 8.4 コアドメイン - 企業・ES・面接
 // -----------------------------------------------------------------------------
 Table companies [headercolor: #fce4ec] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   name text [not null]
   job_title text [null]
   selection_phase text [null]
@@ -82,67 +76,81 @@ Table companies [headercolor: #fce4ec] {
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
   deleted_at timestamptz [null]
-  
+
   indexes {
     user_id
     (user_id, name) [name: 'idx_companies_user_name']
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id。論理削除: deleted_at'
+  Note: '論理削除: deleted_at'
 }
 
 Table research_materials [headercolor: #fce4ec] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   company_id uuid [not null, ref: > companies.id]
   title text [not null]
   type text [not null, note: 'url|pdf|note|image']
   source_url text [null]
-  content_raw text [null, note: 'スクレイピング/OCR結果']
-  summary text [null, note: 'AI要約']
+  content_raw text [null, note: '端末で抽出したテキスト（WebView 本文抽出 / PDFKit / Vision OCR）']
+  summary text [null, note: 'AI連携（research_summarize）で取り込んだ要約']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     user_id
     company_id
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
+  Note: 'ファイル本体（PDF・画像）は保存しない'
 }
 
 Table es_projects [headercolor: #fce4ec] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   company_id uuid [not null, ref: > companies.id]
-  status text [not null, default: 'draft', note: 'draft|in_review|completed|submitted']
+  status text [not null, default: 'not_started', note: 'not_started|draft|in_review|completed|submitted（遷移制約なし。本文の初回保存で not_started → draft）']
   deadline date [null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     user_id
     company_id
     (user_id, status)
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
 }
 
 Table es_sections [headercolor: #fce4ec] {
   id uuid [pk]
   es_project_id uuid [not null, ref: > es_projects.id]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   title text [not null, note: '志望動機|自己PR|ガクチカ|...']
-  content_draft text [null]
+  content_draft text [null, note: 'AI連携（es_generate / es_refine）の取り込み先、または編集中の文章']
   content_final text [null]
   character_limit int [null]
   version int [not null, default: 1]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     es_project_id
     user_id
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
+}
+
+Table es_section_versions [headercolor: #fce4ec] {
+  id uuid [pk]
+  es_section_id uuid [not null, ref: > es_sections.id, note: 'ON DELETE CASCADE']
+  user_id uuid [not null, ref: > users.id]
+  version int [not null, note: '保存した時点の es_sections.version']
+  content text [not null, note: '保存した時点の content_draft']
+  source text [not null, note: 'manual|es_generate|es_refine']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (es_section_id, created_at) [name: 'idx_es_section_versions_section_created_desc']
+    user_id
+  }
+  Note: '作成は AI連携の commit で上書きする直前、手動保存、restore の直前のみ。セクションごとに最新20件まで（超過分は作成時に同一トランザクションで削除）'
 }
 
 Table es_project_asset_relations [headercolor: #fce4ec] {
@@ -151,7 +159,7 @@ Table es_project_asset_relations [headercolor: #fce4ec] {
   indexes {
     (es_project_id, asset_id) [pk]
   }
-  Note: 'ESプロジェクトと自己資産の N:M。es_projects.user_id = auth.uid() で制御'
+  Note: 'ESプロジェクトと自己資産の N:M。es_projects.user_id で認可'
 }
 
 Table es_project_research_material_relations [headercolor: #fce4ec] {
@@ -160,12 +168,12 @@ Table es_project_research_material_relations [headercolor: #fce4ec] {
   indexes {
     (es_project_id, research_material_id) [pk]
   }
-  Note: 'ESプロジェクトと企業研究資料の N:M。es_projects.user_id = auth.uid() で制御'
+  Note: 'ESプロジェクトと企業研究資料の N:M。es_projects.user_id で認可'
 }
 
 Table interviews [headercolor: #fce4ec] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   company_id uuid [ref: > companies.id]
   interview_date date [not null]
   phase text [null]
@@ -173,57 +181,54 @@ Table interviews [headercolor: #fce4ec] {
   memo text [null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     user_id
     company_id
     (user_id, interview_date) [name: 'idx_interviews_user_date_desc']
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
 }
 
 Table interview_logs [headercolor: #fce4ec] {
   id uuid [pk]
   interview_id uuid [not null, ref: > interviews.id]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   question_text text [not null]
   answer_text text [not null]
   self_evaluation text [null]
-  ai_feedback_text text [null]
-  ai_improved_answer_text text [null]
+  ai_feedback_text text [null, note: 'AI連携（answer_review）で取り込んだ指摘・改善案']
+  ai_improved_answer_text text [null, note: 'AI連携（answer_review）で取り込んだ改善後の回答']
   score int [null]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     user_id
     interview_id
     (user_id, created_at) [name: 'idx_interview_logs_user_created_desc']
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
 }
 
 // -----------------------------------------------------------------------------
-// 8.3 コアドメイン - Q&Aバンク
+// 8.4 コアドメイン - Q&Aバンク
 // -----------------------------------------------------------------------------
 Table qa [headercolor: #f3e5f5] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
+  user_id uuid [not null, ref: > users.id]
   company_id uuid [null, ref: > companies.id]
   question_text text [not null]
-  answer_text text [not null]
+  answer_text text [not null, note: 'qa_generate の【意図N】は保存しない']
   source_type text [not null, note: 'pre_generated|review_improved']
   is_favorite boolean [not null, default: false]
   review_status text [not null, note: 'new|reviewed|needs_review']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
     user_id
     (user_id, created_at) [name: 'idx_qa_user_created_desc']
     company_id
   }
-  Note: 'RLS: 全操作 auth.uid() = user_id'
 }
 
 Table qa_asset_relations [headercolor: #f3e5f5] {
@@ -232,83 +237,66 @@ Table qa_asset_relations [headercolor: #f3e5f5] {
   indexes {
     (qa_id, asset_id) [pk]
   }
-  Note: 'Q&Aと自己資産の N:M。qa.user_id = auth.uid() で制御'
+  Note: 'Q&Aと自己資産の N:M。qa.user_id で認可'
 }
 
 // -----------------------------------------------------------------------------
-// 8.4 AI / 生成管理（BFF の service role のみ書き込み可）
+// 8.5 AI連携
 // -----------------------------------------------------------------------------
-Table generation_jobs [headercolor: #e0f7fa] {
+Table prompt_sessions [headercolor: #e0f7fa] {
   id uuid [pk]
-  external_ref text [not null, note: 'クレジット取引と紐付ける外部参照']
-  user_id uuid [ref: > auth_users.id]
-  job_type text [not null, note: 'qa_generate|answer_review|summary_generate|research_summarize|es_generate|es_refine']
-  input_snapshot jsonb [not null]
-  model_name text [not null]
-  token_used int [null]
-  cost_estimate numeric [null]
-  status text [not null, note: 'success|failed']
-  error_code text [null]
-  error_message text [null]
+  user_id uuid [not null, ref: > users.id]
+  use_case text [not null, note: 'qa_generate|answer_review|summary_generate|research_summarize|es_generate|es_refine']
+  template_version text [not null, note: '例: qa-v1, review-v1, summary-v1, research-v1, esdraft-v1, esrefine-v1']
+  company_id uuid [null, ref: > companies.id]
+  es_project_id uuid [null, ref: > es_projects.id]
+  es_section_id uuid [null, ref: > es_sections.id]
+  interview_id uuid [null, ref: > interviews.id]
+  interview_log_id uuid [null, ref: > interview_logs.id]
+  input_refs jsonb [not null, default: `'{}'::jsonb`, note: '選んだ自己資産・企業研究資料の ID とオプションのみ。本文は入れない']
+  status text [not null, default: 'created', note: 'created|pasted|saved|abandoned']
+  parse_result text [null, note: 'success|partial|failed。未解析時は null。解析しないユースケースは parse 時に success']
   created_at timestamptz [not null, default: `now()`]
-  
+  pasted_at timestamptz [null]
+  completed_at timestamptz [null, note: 'saved / abandoned になった時刻']
+
   indexes {
-    (user_id, created_at) [name: 'idx_generation_jobs_user_created_desc']
-    job_type
+    (user_id, status, created_at) [name: 'idx_prompt_sessions_user_status_created']
+    (use_case, template_version) [name: 'idx_prompt_sessions_usecase_version']
   }
-  Note: 'SELECT: auth.uid()=user_id。INSERT/UPDATE: BFF service role のみ。DELETE: 管理者のみ'
+  Note: '旧 generation_jobs を置き換え（D13）。プロンプト全文・貼り戻した回答の生データは保存しない。commit は status = pasted の条件付き UPDATE で 1 回だけ成功させる（created からの直接 commit は不可）。作成から 7 日を過ぎた created / pasted は一覧取得時に abandoned に更新する'
 }
 
-// -----------------------------------------------------------------------------
-// 8.5 クレジット課金系（BFF の service role のみ書き込み可）
-// -----------------------------------------------------------------------------
-Table credit_balances [headercolor: #fff8e1] {
-  user_id uuid [pk, ref: > auth_users.id]
-  balance int [not null, default: 0, note: 'CHECK (balance >= 0)']
-  updated_at timestamptz [not null, default: `now()`]
-  Note: 'SELECT: auth.uid()=user_id。UPDATE/INSERT: BFF service role のみ'
-}
-
-Table credit_transactions [headercolor: #fff8e1] {
+Table dashboard_summaries [headercolor: #e0f7fa] {
   id uuid [pk]
-  user_id uuid [not null, ref: > auth_users.id]
-  type text [not null, note: 'purchase|consume|bonus|adjustment']
-  amount int [not null]
-  status text [not null, note: 'pending|committed|reversed']
-  reason text [not null]
-  external_ref text [not null]
+  user_id uuid [not null, ref: > users.id]
+  content text [not null, note: 'AI連携（summary_generate）で取り込んだ全文']
+  source_interview_id uuid [null, ref: > interviews.id]
   created_at timestamptz [not null, default: `now()`]
-  
+
   indexes {
-    (user_id, created_at) [name: 'idx_credit_tx_user_created_desc']
-    external_ref
-    (user_id, external_ref, type) [unique, name: 'uq_credit_tx_user_ref_type']
+    (user_id, created_at) [name: 'idx_dashboard_summaries_user_created_desc']
   }
-  Note: 'SELECT: auth.uid()=user_id。INSERT/UPDATE: BFF service role のみ'
+  Note: 'ダッシュボードには最新の 1 件を表示する'
 }
 
-Table stripe_events [headercolor: #fff8e1] {
-  id text [pk, note: 'Stripe event.id']
-  received_at timestamptz [not null, default: `now()`]
-  
-  indexes {
-    (received_at) [name: 'idx_stripe_events_received_desc']
-  }
-  Note: 'SELECT: 管理者のみ。INSERT: BFF service role のみ'
-}
-
-Table credit_packages [headercolor: #e8eaf6] {
+// -----------------------------------------------------------------------------
+// 8.6 共有リンク
+// -----------------------------------------------------------------------------
+Table share_links [headercolor: #e8eaf6] {
   id uuid [pk]
-  name text [not null]
-  credits int [not null]
-  stripe_price_id text [not null]
-  is_active boolean [not null, default: true]
-  Note: '商品マスタ。SELECT: 全ユーザー(is_active=true)。変更: 管理者/service role のみ'
-}
+  user_id uuid [not null, ref: > users.id]
+  es_project_id uuid [not null, ref: > es_projects.id]
+  token_hash text [not null, unique, note: '共有トークン（32 バイトの暗号学的乱数）の SHA-256 ハッシュ。生トークンは保存しない']
+  snapshot jsonb [not null, note: '公開するセクションの title と本文（content_final、なければ content_draft）。show_company_name が真なら企業名。ユーザー名は入れない']
+  show_company_name boolean [not null, default: false]
+  expires_at timestamptz [not null, note: '作成時刻 + 1 / 7 / 30 日。無期限不可']
+  revoked_at timestamptz [null]
+  created_at timestamptz [not null, default: `now()`]
 
-Table credit_costs [headercolor: #e8eaf6] {
-  feature text [pk, note: 'qa_generate|answer_review|summary_generate|regenerate|research_summarize|es_generate|es_refine']
-  cost int [not null]
-  is_active boolean [not null, default: true]
-  Note: '機能ごとの消費量。SELECT: 全ユーザー。UPDATE: 管理者/service role のみ'
+  indexes {
+    es_project_id
+    expires_at [name: 'idx_share_links_expires_at']
+  }
+  Note: 'D12。閲覧可否は revoked_at IS NULL AND expires_at > now()。ES プロジェクトの削除時・退会時は物理削除。期限切れ・失効した行は運用で定期的に物理削除してよい'
 }

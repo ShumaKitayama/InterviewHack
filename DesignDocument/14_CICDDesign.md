@@ -1,49 +1,46 @@
-# 14. CI/CD 設計（GitHub Actions / Pages / Cloud Run）
+# 14. CI/CD 設計（GitHub Actions / Cloud Run）
+
+> 改訂：2026-10-22。方針転換メモ（`DirectionChange_20261022.md`）の決定事項 D1〜D16 と 2.10 共通契約（特に 2.10.6）を反映した。
 
 ## 14.1 方針
 
-- 「人間がやらなくていいこと」はすべて自動化する（テスト / ビルド / デプロイ）
-- 課金・AI・認証が絡むため、**本番直デプロイは原則しない**（stgで検証→prod）
+- 「人間がやらなくていいこと」はすべて自動化する（テスト / ビルド / バックエンドのデプロイ）
+- 個人情報を扱うため、**本番へのデプロイは必ず手動承認を通す**
 - 失敗時は「どこで落ちたか」が一目で分かるパイプラインにする
-- シークレットはGitHub Actionsと各プラットフォーム（Cloud Run / Pages）の環境変数で管理し、リポジトリに置かない
-- フロントのエラー収集（Sentry）は任意だが、本番では推奨とする。release（Git SHA）と request_id の相関を維持する
+- シークレットはリポジトリに置かない。GitHub Secrets と Cloud Run のシークレット（Secret Manager）で管理する
 - すべての成果物は Git SHA でタグ付けし、再現可能なデプロイを保証する
 - バックエンドは DDD + クリーンアーキテクチャ（DesignDocument/7_BackendDesign.md）を前提とし、CI で層違反（Domain への外部依存など）を検出・防止する
+- 運営費をほぼ0円に保つため、GitHub Actions の無料枠を意識する（特に macOS ランナー。14.5.2）
 
 ---
 
-## 14.2 対象リポジトリ構成（想定）
+## 14.2 対象リポジトリ構成
 
-- monorepo もしくは 2 repo
-  - frontend/（Vite + React）
-  - backend/（Go + Gin, Docker）
-
-以下は monorepo 想定で記載（分離しても同じ考え方）
+- monorepo
+  - `backend/`（Go + Gin、Docker、Cloud Run にデプロイ）
+  - `ios/`（SwiftUI、Xcode プロジェクト。2.10.5）
+  - `frontend/`（Vite + React）は廃止予定（コード移行の段階で削除する。削除までは CI 対象から外す）
 
 ---
 
-## 14.3 環境（dev / stg / prod）
+## 14.3 環境（dev / prod）
 
-- dev: ローカル開発
-- stg: ステージング（本番と同等構成、StripeはTest、Supabaseはstgプロジェクト）
-- prod: 本番（Stripe Live、Supabase prod）
+- dev：ローカルの Go＋Neon の dev ブランチ＋Firebase の dev プロジェクト
+- prod：Cloud Run＋Neon の main ブランチ＋Firebase の prod プロジェクト
+- stg はフェーズ2（TestFlight 配布）で追加する（2.10.6）
 
-CI/CDでは以下を分離する：
+CI/CD では以下を分離する：
 
-- Cloudflare Pages: preview / stg / prod（または stg 用プロジェクト）
-- Cloud Run: service-stg / service-prod
-- Supabase: project-stg / project-prod
-- Stripe: test mode / live mode
-- OpenAI / Gemini API Key も環境別に分離する
-- Stripe: Test/LIVE で Webhook Secret / Price ID / API Key を完全分離する
-- Supabase: project-stg / project-prod の URL / ANON KEY / SERVICE KEY を完全分離する
+- Cloud Run：service-prod（stg 追加時に service-stg）
+- Neon：ブランチ（`main` / `dev`）ごとに `DATABASE_URL` を分ける
+- Firebase：プロジェクト（dev / prod）ごとに `FIREBASE_PROJECT_ID` を分ける
+- iOS：ビルド構成（`Debug-Dev` / `Release-Prod`。5.12）ごとに API の URL と `GoogleService-Info.plist` を分ける
 
 ---
 
 ## 14.4 ブランチ戦略（最小）
 
 - main: 本番
-- develop（任意）: 開発統合
 - feature/\*: 機能開発
 
 運用ルール：
@@ -56,120 +53,116 @@ CI/CDでは以下を分離する：
 
 ## 14.5 CI（Pull Request 時）
 
-### 14.5.1 フロントエンド（frontend/）
+### 14.5.1 バックエンド（backend/）
 
-- Node install
-- `npm ci`
-- `npm run lint`
-- `npm run typecheck`（あれば）
-- `npm run test`（あれば）
-- `npm run build`（Vite build）
-
-### 14.5.2 バックエンド（backend/）
-
+- `backend/` に変更があるときに実行する
 - Go setup
-- `go test ./...`
 - `go vet ./...`
-- `golangci-lint`（任意だが推奨）
+- `golangci-lint`
+- `go test ./...`（Domain / Usecase のユニットテスト）
+- 統合テスト：GitHub Actions の PostgreSQL サービスコンテナを立て、マイグレーションを適用してから実行する
+  - マイグレーションは2回適用し、冪等であることも確認する
+  - 認可の越境防止、AI連携の commit の冪等性、共有リンクの期限・失効を必ず含める
+- アーキテクチャチェック：`backend/scripts/arch_check.sh`（Domain が `gin` / `pgx` / `firebase` などの外部 SDK と、`net/http` などのネットワーク・DB 関連パッケージを import していないこと。7.2.1）
 - Docker build（ビルドが通るかの検証）
-- アーキテクチャチェック（禁止 import / 依存方向の検査。例：Domain が gin/stripe/supabase/openai/gemini 等に依存していないこと）
-- パッケージ依存の可視化・循環依存チェック（必要に応じて）
+
+### 14.5.2 iOS（ios/）
+
+- `ios/` に変更があるときだけ実行する
+  - macOS ランナーは Linux ランナーより無料枠の消費が大きいため（倍率は公式で要確認）
+- macOS ランナーで `xcodebuild test`（シミュレータ）
+- コード署名は行わない（テストのみ。配布はフェーズ2以降）
 
 共通ゲート：
 
-- 依存関係の脆弱性チェック（frontend: `npm audit --production` 相当 / backend: 可能であれば `govulncheck`）
+- 依存関係の脆弱性チェック（backend：`govulncheck`）
 - 成果物に `RELEASE=Git SHA` が埋め込まれていることの検証
-- 変更内容が DesignDocument/7_BackendDesign.md（アーキテクチャ）および関連設計に準拠していることのレビュー観点チェック（PRテンプレで宣言）
+- 変更内容が DesignDocument/7_BackendDesign.md（アーキテクチャ）および関連設計に準拠していることのレビュー観点チェック（PR テンプレートで宣言）
 
 失敗したら PR はマージ不可
 
 ---
 
-## 14.6 CD（main マージ後の自動デプロイ）
+## 14.6 CD（main マージ後のデプロイ）
 
 ※ CD は CI の全ゲート（テスト・ビルド・アーキテクチャチェック）を通過した成果物のみをデプロイ対象とする。
 
-### 14.6.1 ステージング（stg）へのデプロイ
-
-1. frontend:
-   - Vite build
-   - Cloudflare Pages（stg）へデプロイ
-2. backend:
-   - Docker build
-   - Artifact Registry / GCR に push
-   - Cloud Run（service-stg）へデプロイ
-     2.5. DB マイグレーション（必要な場合のみ、idempotent）
-3. スモークテスト:
-   - /health エンドポイント
-   - 認証なしで叩ける軽量チェックAPI
-   - 認証ありの主要AI導線（/ai/qa-generate, /ai/es-generate）の疎通確認（stg用テストデータ）
-   - 失敗したら以降のステップを止める
-
-### 14.6.2 本番（prod）へのデプロイ
+### 14.6.1 本番（prod）へのデプロイ
 
 - GitHub Actions の `environment: prod` を使用し **手動承認必須**
-- 承認後：
-  1. frontend を Cloudflare Pages（prod）へデプロイ
-  2. backend を Cloud Run（service-prod）へデプロイ
-     2.5. DB マイグレーション（必要な場合のみ、idempotent）
-  3. スモークテスト実行
+- 承認後、次の順序で実行する（2.10.6）：
+  1. DB マイグレーション（`backend/migrations` を `psql` で番号順に適用。後方互換かつ冪等なもの）
+  2. バックエンド：Docker build → Artifact Registry に push → Cloud Run（service-prod）へデプロイ
+  3. スモークテスト
+     - `GET /health`
+     - 認証なしで叩けるチェック（存在しない共有トークンで `GET /s/{token}` が 404 を返す）
+     - 失敗したら以降のステップを止める
 - 失敗した場合：
-  - 直前バージョンへロールバック（Cloud Run のリビジョン機能を使用）
+  - 直前のリビジョンへロールバック（Cloud Run のリビジョン機能を使用）
+
+### 14.6.2 ステージング（stg）
+
+- フェーズ2で追加する。追加後は stg へ自動デプロイ → スモークテスト → 承認 → prod の順にする
+
+### 14.6.3 iOS
+
+- フェーズ1は CD を持たない。開発者が Xcode から実機へ直接インストールする
+- フェーズ2で、TestFlight へのアップロードを CI/CD に組み込むか検討する
 
 ---
 
 ## 14.7 シークレット管理
 
-### 14.7.1 GitHub Secrets に置くもの
+### 14.7.1 GitHub に置くもの
 
-- GCP_SERVICE_ACCOUNT_KEY（Cloud Run デプロイ用）
-- CLOUDFLARE_API_TOKEN（Pages デプロイ用）
-- その他 CI が必要とする最小限のトークン
+- GCP への認証は **Workload Identity Federation を推奨**（サービスアカウントキーを GitHub に置かない）
+  - 必要な値：Workload Identity Provider 名、デプロイ用サービスアカウント（秘密情報ではないが、GitHub の Variables / Secrets で管理する）
+- マイグレーション用の `DATABASE_URL`（prod）：GitHub Secrets（`environment: prod` に紐付け、承認後のジョブからのみ参照する）
 
-### 14.7.2 置いてはいけないもの
+### 14.7.2 Cloud Run に置くもの
 
-- Stripe API Key（Cloud Run の環境変数で管理）
-- Supabase service_role key
-- OpenAI / Gemini API Key
+- `DATABASE_URL`：Secret Manager に保存し、Cloud Run にシークレットとして渡す
+- そのほかの環境変数は秘密情報ではないため、通常の環境変数として設定する（14.8）
 
-これらは **Cloud Run / Pages の環境変数** 側で管理する。
+### 14.7.3 置いてはいけないもの
+
+- `DATABASE_URL` をリポジトリやワークフローファイルに直書きすること
+- GCP のサービスアカウントキー（JSON）
+- `GoogleService-Info.plist` の prod 用の値をログに出すこと
 
 ---
 
 ## 14.8 環境変数の注入方針
 
-### 14.8.1 フロント（Cloudflare Pages）
+### 14.8.1 バックエンド（Cloud Run）
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_API_BASE_URL`
-- `VITE_APP_ORIGIN`
-- 環境別（stg/prod）に Pages 側で設定
+| 変数 | 内容 | 秘密 |
+|------|------|------|
+| `DATABASE_URL` | Neon の接続文字列（prod は main ブランチ） | はい（Secret Manager） |
+| `FIREBASE_PROJECT_ID` | ID トークン検証の `aud` | いいえ |
+| `SHARE_BASE_URL` | 共有リンクの URL の基点 | いいえ |
+| `APP_ENV` | `dev` / `prod` | いいえ |
+| `LOG_LEVEL` | ログレベル | いいえ |
+| `FEATURE_SHARE_VIEW` | 共有ページの閲覧（`on` / `off`、既定 `on`。12.11） | いいえ |
+| `FEATURE_SHARE_CREATE` | 共有リンクの発行（`on` / `off`、既定 `on`。12.11） | いいえ |
+| `FEATURE_COMMIT_DISABLED_USE_CASES` | commit を止めるユースケース（カンマ区切り、既定は空。12.11） | いいえ |
 
-### 14.8.2 バックエンド（Cloud Run）
+- Firebase ID トークンの検証は Google の公開鍵で行うため、Firebase のサービスアカウントキーは不要
 
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`（推奨）
-- `SUPABASE_ANON_KEY`（フォールバック）
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `OPENAI_API_KEY`
-- `GEMINI_API_KEY`
-- `ENV=stg|prod` など
+### 14.8.2 iOS
 
-認証トークン検証は BFF から `GET {SUPABASE_URL}/auth/v1/user` を呼び、`apikey` に
-`SUPABASE_PUBLISHABLE_KEY`（未設定時は `SUPABASE_ANON_KEY`）を付与して行う。
+- API の URL と Firebase の設定は、ビルド構成（`Debug-Dev` / `Release-Prod`）ごとに切り替える（5.12）
+- シークレットをアプリに埋め込まない（`GoogleService-Info.plist` の値は公開されても問題ない識別子のみ）
 
 ---
 
 ## 14.9 リリース識別子（Versioning）
 
-- フロント/バックエンドともに
-  - Git の commit SHA を `RELEASE` として埋め込む
-- フロント：
-  - Sentry の `release` に設定
 - バックエンド：
-  - 構造化ログに `release` フィールドとして出力
+  - Git の commit SHA を `RELEASE` として埋め込む
+  - 構造化ログに `release` フィールドとして出力する
+- iOS：
+  - ビルド番号に Git の commit SHA（短縮形）を対応付ける
 
 これにより：
 
@@ -181,41 +174,44 @@ CI/CDでは以下を分離する：
 
 ### 14.10.1 バックエンド（Cloud Run）
 
-- Cloud Run のリビジョン機能で
-  - 直前の安定リビジョンへ即時切り戻し
+- Cloud Run のリビジョン機能で、直前の安定リビジョンへ即時に切り戻す
 
-### 14.10.2 フロント（Cloudflare Pages）
+### 14.10.2 DB（Neon）
 
-- 直前のデプロイを再デプロイ（またはロールバック機能）
-- 問題があるコミットを revert して再デプロイ
+- 原則ロールバックしない（後方互換マイグレーションを徹底する。12.4）
+- データ破損時は Neon の復元機能を使う（12.8）
+
+### 14.10.3 iOS
+
+- 直前のコミットを Xcode で再ビルドし、実機に入れ直す
 
 ---
 
 ## 14.11 よくある事故の予防策
 
 - prod 環境は **必ず手動承認**
-- stg を通さずに prod に行けないフローにする
-- 環境変数の差分はデプロイ前に確認ログを出す
-- Stripe Live Key が stg に入っていないかを CI でチェック（ENV ガード）
-- Domain / Usecase にフレームワーク・SDK依存を混入させない（アーキテクチャチェックで検出）
+- マイグレーションは prod 前に Neon の一時ブランチで適用を確認する（12.4）
+- 環境変数の差分はデプロイ前に確認ログを出す（値そのものは出さない）
+- dev の `DATABASE_URL` が prod の Cloud Run に入っていないかを確認する（`APP_ENV` と接続先ブランチの対応をスモークテストで検証）
+- Domain / Usecase にフレームワーク・SDK 依存を混入させない（アーキテクチャチェックで検出）
+- macOS ランナーを不要に動かさない（`ios/` のパスフィルタ）
 
 ---
 
-## 14.12 MVP時点の簡略版（現実解）
+## 14.12 MVP 時点の簡略版（現実解）
 
-- 最初は：
-  - PR: CIのみ
-  - main: 直接 prod デプロイ
-- ただし：
-  - 課金を入れるタイミングで **stg + 承認フロー必須** に昇格させる
+- PR：CI のみ
+- main マージ後：手動承認 → prod デプロイ（stg なし）
+- iOS：CI でテストのみ。配布は Xcode から実機へ直接
+- フェーズ2（TestFlight 配布）で stg を追加し、stg → 承認 → prod のフローに昇格させる
 
 ---
 
 ## 14.13 この章の凍結事項
 
 - CI/CD は GitHub Actions を使用する
-- PR では必ずテスト + ビルドを通す
-- 本番デプロイは原則 stg → 承認 → prod
-- シークレットは GitHub に直置きせず、実行環境の環境変数で管理する
-- ロールバック可能な構成（Cloud Run リビジョン / Pages 再デプロイ）を前提にする
+- PR では必ずテスト + ビルドを通す。iOS の CI は `ios/` 変更時のみ実行する
+- 本番デプロイは手動承認必須。順序はマイグレーション → バックエンド → スモークテスト
+- シークレットは GitHub に直置きせず、`DATABASE_URL` は Secret Manager で管理する。GCP 認証は Workload Identity Federation を推奨する
+- ロールバック可能な構成（Cloud Run リビジョン）を前提にする
 - バックエンドは DDD + クリーンアーキテクチャの依存方向を破らない（DesignDocument/7_BackendDesign.md 準拠、CI で検証）

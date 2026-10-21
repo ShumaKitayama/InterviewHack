@@ -1,5 +1,7 @@
 # InterviewHack
 
+> **再設計中（2026-10-22〜）**：iOS（SwiftUI）＋ Go BFF（Cloud Run）＋ Neon ＋ Firebase Auth の構成に移行し、LLM API・Stripe・Supabase は廃止する方針です。詳細は [DesignDocument/DirectionChange_20261022.md](DesignDocument/DirectionChange_20261022.md) を参照してください。以下のセットアップ手順は、コード移行が終わるまでの現行コード（React PWA ＋ Supabase）向けです。
+
 AI を活用した面接対策アシスタント。自己分析資産の管理、企業研究、ES 作成支援、想定 Q&A 生成、回答添削、面接振り返りまでを一貫してサポートする PWA アプリケーション。
 
 ## アーキテクチャ

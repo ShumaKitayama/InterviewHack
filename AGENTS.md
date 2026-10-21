@@ -22,6 +22,8 @@ Authoritative references (fixed numbering):
 - DesignDocument/13_Schedule.md
 - DesignDocument/14_CICDDesign.md
 
+Redesign in progress (2026-10-22): `DesignDocument/DirectionChange_20261022.md` records the new direction (iOS SwiftUI + Go BFF on Cloud Run + Neon + Firebase Auth; no LLM API, no Stripe, no Supabase) and the cross-chapter contract (section 2.10). The design docs above are being revised to match it. Until code migration completes, the sections of this file below that describe Supabase, Stripe, credits, OpenAI/Gemini and the React frontend describe the **current code**, not the target design — follow the revised design docs for any new work.
+
 Mandatory rules:
 
 1. Identify and review **at least one** relevant design document before making changes.
