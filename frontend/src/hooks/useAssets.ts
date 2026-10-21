@@ -1,6 +1,6 @@
 // DesignDocument/5_FrontendDesign.md 5.6.1, 5.8 - 自己資産 CRUD hooks
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../features/auth/AuthContext";
+import { useAuth } from "../features/auth/useAuth";
 import type { AssetInput } from "../lib/schema/asset";
 import { supabase } from "../lib/supabase/client";
 import type { Asset, AssetTag } from "../lib/supabase/database.types";

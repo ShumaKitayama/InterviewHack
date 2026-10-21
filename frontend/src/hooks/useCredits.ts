@@ -1,6 +1,6 @@
 // DesignDocument/5_FrontendDesign.md 5.6.1, 5.6.2, 5.8 - クレジット hooks
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../features/auth/AuthContext";
+import { useAuth } from "../features/auth/useAuth";
 import { supabase } from "../lib/supabase/client";
 import type {
   CreditBalance,

@@ -1,7 +1,7 @@
 // DesignDocument/5_FrontendDesign.md 5.4.2 ガード
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../features/auth/AuthContext";
+import { useAuth } from "../features/auth/useAuth";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();

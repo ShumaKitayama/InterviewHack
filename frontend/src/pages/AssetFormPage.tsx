@@ -1,7 +1,7 @@
 // DesignDocument/5_FrontendDesign.md 5.9, 3_UIUXDesign.md 3.3.2 - 自己資産作成/編集
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { BottomAction } from "../components/ui/BottomAction";
 import { ChipSelector } from "../components/ui/ChipSelector";
@@ -31,13 +31,17 @@ export function AssetFormPage() {
   const updateAsset = useUpdateAsset();
 
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  // 未編集の間はサーバー上のタグをそのまま表示する。編集後だけローカルの下書きを使う。
+  const [tagDraft, setTagDraft] = useState<{
+    scope: string;
+    tags: string[];
+  } | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<AssetInput>({
     resolver: zodResolver(assetSchema),
@@ -49,7 +53,17 @@ export function AssetFormPage() {
     },
   });
 
-  const selectedType = watch("type");
+  const selectedType = useWatch({ control, name: "type" });
+
+  const serverTags = useMemo(() => {
+    if (!existingTagIds || !allTags) return [];
+    return existingTagIds
+      .map((tagId) => allTags.find((tag) => tag.id === tagId)?.name)
+      .filter((name): name is string => Boolean(name));
+  }, [existingTagIds, allTags]);
+
+  const tagScope = `${id ?? "new"}:${existingTagIds?.join("\0") ?? ""}`;
+  const tags = tagDraft?.scope === tagScope ? tagDraft.tags : serverTags;
 
   useEffect(() => {
     if (existingAsset) {
@@ -59,38 +73,29 @@ export function AssetFormPage() {
     }
   }, [existingAsset, setValue]);
 
-  useEffect(() => {
-    if (existingTagIds && allTags) {
-      const tagNames = existingTagIds
-        .map((tagId) => allTags.find((t) => t.id === tagId)?.name)
-        .filter(Boolean) as string[];
-      setTags(tagNames);
-      setValue("tags", tagNames);
-    }
-  }, [existingTagIds, allTags, setValue]);
+  const updateTags = (next: string[]) => {
+    setTagDraft({ scope: tagScope, tags: next });
+  };
 
   const addTag = () => {
     const trimmed = tagInput.trim();
     if (trimmed && !tags.includes(trimmed)) {
-      const updated = [...tags, trimmed];
-      setTags(updated);
-      setValue("tags", updated);
+      updateTags([...tags, trimmed]);
     }
     setTagInput("");
   };
 
   const removeTag = (tagName: string) => {
-    const updated = tags.filter((t) => t !== tagName);
-    setTags(updated);
-    setValue("tags", updated);
+    updateTags(tags.filter((tag) => tag !== tagName));
   };
 
   const onSubmit = async (data: AssetInput) => {
+    const input = { ...data, tags };
     try {
       if (isEdit && id) {
-        await updateAsset.mutateAsync({ id, input: data });
+        await updateAsset.mutateAsync({ id, input });
       } else {
-        await createAsset.mutateAsync(data);
+        await createAsset.mutateAsync(input);
       }
       navigate("/assets", { replace: true });
     } catch {

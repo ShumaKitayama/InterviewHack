@@ -1,7 +1,7 @@
 // DesignDocument/5_FrontendDesign.md 5.9, 3_UIUXDesign.md 3.3.2 - 企業作成/編集
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { BottomAction } from "../components/ui/BottomAction";
 import { ChipSelector } from "../components/ui/ChipSelector";
@@ -28,7 +28,7 @@ export function CompanyFormPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CompanyInput>({
     resolver: zodResolver(companySchema),
@@ -42,7 +42,7 @@ export function CompanyFormPage() {
     },
   });
 
-  const selectedPhase = watch("selection_phase");
+  const selectedPhase = useWatch({ control, name: "selection_phase" });
 
   useEffect(() => {
     if (existingCompany) {

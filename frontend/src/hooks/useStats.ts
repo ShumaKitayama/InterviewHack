@@ -1,6 +1,6 @@
 // DesignDocument/3_UIUXDesign.md 3.5.1 - ダッシュボード統計 hooks
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../features/auth/AuthContext";
+import { useAuth } from "../features/auth/useAuth";
 import { supabase } from "../lib/supabase/client";
 
 interface DashboardStats {

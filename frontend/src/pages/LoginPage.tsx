@@ -1,7 +1,7 @@
 // DesignDocument/5_FrontendDesign.md 5.5.1 ログインフロー
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/AuthContext";
+import { useAuth } from "../features/auth/useAuth";
 import {
   signInWithEmail,
   signInWithGoogle,

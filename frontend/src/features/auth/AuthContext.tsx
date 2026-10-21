@@ -1,25 +1,8 @@
 // DesignDocument/5_FrontendDesign.md 5.5.3 セッション管理
-import type { Session, User } from "@supabase/supabase-js";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import type { Session } from "@supabase/supabase-js";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../../lib/supabase/client";
-
-interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  loading: true,
-});
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -47,8 +30,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

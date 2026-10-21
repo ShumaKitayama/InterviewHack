@@ -1,6 +1,6 @@
 // DesignDocument/3_UIUXDesign.md 3.4.3, 3.5.7 - 面接作成
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { BottomAction } from "../components/ui/BottomAction";
 import { ChipSelector } from "../components/ui/ChipSelector";
@@ -20,7 +20,7 @@ export function InterviewNewPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<InterviewInput>({
     resolver: zodResolver(interviewSchema),
@@ -32,7 +32,7 @@ export function InterviewNewPage() {
     },
   });
 
-  const selectedPhase = watch("phase");
+  const selectedPhase = useWatch({ control, name: "phase" });
 
   const onSubmit = async (data: InterviewInput) => {
     try {
