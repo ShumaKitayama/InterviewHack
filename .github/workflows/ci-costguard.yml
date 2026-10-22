@@ -1,0 +1,54 @@
+# DesignDocument/14_CICDDesign.md 14.5.3 コストガード CI
+name: CI Cost Guard
+
+on:
+  pull_request:
+    paths:
+      - "ops/costguard/**"
+      - ".github/workflows/ci-costguard.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ops/costguard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache-dependency-path: ops/costguard/go.sum
+
+      - name: Format
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          working-directory: ops/costguard
+
+      - name: Vulnerability check
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Docker build
+        run: docker build --build-arg RELEASE=${{ github.sha }} -t costguard:ci .
+
+      - name: Verify RELEASE is embedded
+        run: |
+          id=$(docker create costguard:ci)
+          docker cp "$id":/app/costguard ./costguard-bin
+          docker rm "$id"
+          grep -q "${{ github.sha }}" ./costguard-bin

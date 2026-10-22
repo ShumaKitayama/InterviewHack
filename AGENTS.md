@@ -138,6 +138,7 @@ iOS: `GoogleService-Info-Dev.plist` / `GoogleService-Info-Prod.plist` (not commi
 │  ├─ internal/{domain,usecase,port,adapter/http,infra,app}
 │  ├─ migrations/           # idempotent SQL, applied in order by scripts/migrate.sh
 │  └─ scripts/              # migrate.sh, arch_check.sh
+├─ ops/costguard/           # cost guard: stops the prod API near the free tier (separate Go module, 12.12)
 └─ ios/
    ├─ InterviewHackKit/     # Swift package: models, API client, cache, AI連携 flow, SwiftUI views, tests
    ├─ App/                  # app target: Firebase, SwiftData, entry point
@@ -228,10 +229,11 @@ cd backend && TEST_DATABASE_URL=<test db> go test ./...
 cd backend && bash scripts/arch_check.sh
 cd backend && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
 cd backend && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+cd ops/costguard && gofmt -l . && go vet ./... && go test ./...
 cd ios/InterviewHackKit && swift test
 ```
 
-The same gates run in `.github/workflows/ci-backend.yml` and `ci-ios.yml`; production deploys run through `cd-production.yml` (manual approval). See README "CI/CD".
+The same gates run in `.github/workflows/ci-backend.yml`, `ci-costguard.yml` and `ci-ios.yml`; production deploys run through `cd-production.yml` (manual approval). See README "CI/CD".
 
 ---
 

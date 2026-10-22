@@ -44,6 +44,7 @@ InterviewHack/
 │   │   └── app/                 # DI（cmd/api と統合テストで共有）＋ 統合テスト
 │   ├── migrations/              # 冪等な SQL（psql で番号順に適用）
 │   └── scripts/                 # migrate.sh / arch_check.sh
+├── ops/costguard/               # コストガード（無料枠に近づいたら API を止める。別の Go モジュール）
 └── ios/
     ├── InterviewHackKit/        # Swift Package（ロジック・画面。swift test で検証）
     ├── App/                     # アプリ本体（Firebase / SwiftData。Xcode でビルド）
@@ -144,7 +145,8 @@ cd backend && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 | --- | --- | --- |
 | `ci-backend.yml` | `backend/` を変えた PR | gofmt / vet / golangci-lint / govulncheck / arch_check / マイグレーション 2 回 / ユニット＋統合テスト / Docker build / RELEASE 埋め込み確認 |
 | `ci-ios.yml` | `ios/` を変えた PR | XcodeGen → シミュレータで `xcodebuild test`（署名なし、ダミーの plist） |
-| `cd-production.yml` | Actions からの手動実行 | マイグレーション → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す） |
+| `ci-costguard.yml` | `ops/costguard/` を変えた PR | gofmt / vet / golangci-lint / govulncheck / テスト / Docker build / RELEASE 埋め込み確認 |
+| `cd-production.yml` | Actions からの手動実行 | コストガードで停止中でないかの確認 → マイグレーション → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す） |
 
 ### 本番環境の準備（初回だけ）
 
@@ -195,6 +197,7 @@ echo "GCP_WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentit
 | Variable | `SHARE_BASE_URL` | Cloud Run の URL（初回デプロイ後に分かる。それまでは仮の値で、確定後に再デプロイ） |
 
 5. Actions タブで「CD Production」を手動実行し、承認する。デプロイ後の URL を `ios/App/Config/Prod.xcconfig` の `API_BASE_URL` に入れる
+6. **コストガード**（無料枠の 90% で API を自動停止。12.12）：`BILLING_ACCOUNT=<請求先アカウントID> ALERT_EMAIL=<通知先メール> bash ops/costguard/scripts/setup.sh`。API の実行用サービスアカウント（`interviewhack-api`）もここで作られ、以後の CD はそれを使う。止まったときの再開方法は [ops/costguard/README.md](ops/costguard/README.md)
 
 ## 設計原則
 
