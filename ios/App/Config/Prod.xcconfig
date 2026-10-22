@@ -1,6 +1,6 @@
 // DesignDocument/5_FrontendDesign.md 5.12.1：Release-Prod（Cloud Run の BFF）
 // API_BASE_URL は Cloud Run の URL に置き換える（例：https://interviewhack-api-xxxxx-an.a.run.app）
-API_BASE_URL = https:/$()/interviewhack-api.example.run.app
+API_BASE_URL = https:/$()/interviewhack-api-537152087724.asia-northeast1.run.app
 APP_ENV = prod
 PRODUCT_BUNDLE_IDENTIFIER = jp.interviewhack.app
 GOOGLE_SERVICE_INFO_PLIST = GoogleService-Info-Prod.plist

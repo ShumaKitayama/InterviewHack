@@ -25,11 +25,12 @@ type Config struct {
 // Load reads the configuration.
 func Load() (*Config, error) {
 	cfg := &Config{
-		AppEnv:                        getEnv("APP_ENV", "dev"),
-		Port:                          getEnv("PORT", "8080"),
-		Release:                       getEnv("RELEASE", "dev"),
-		LogLevel:                      getEnv("LOG_LEVEL", "info"),
-		DatabaseURL:                   os.Getenv("DATABASE_URL"),
+		AppEnv:   getEnv("APP_ENV", "dev"),
+		Port:     getEnv("PORT", "8080"),
+		Release:  getEnv("RELEASE", "dev"),
+		LogLevel: getEnv("LOG_LEVEL", "info"),
+		// Secret Manager はファイル末尾の改行をそのまま渡す。pgx はその改行を channel_binding の値に含めて拒否する。
+		DatabaseURL:                   strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		FirebaseProjectID:             os.Getenv("FIREBASE_PROJECT_ID"),
 		ShareBaseURL:                  strings.TrimRight(getEnv("SHARE_BASE_URL", "http://localhost:8080"), "/"),
 		FeatureShareView:              flagOn(os.Getenv("FEATURE_SHARE_VIEW")),

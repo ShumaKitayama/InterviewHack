@@ -4,7 +4,7 @@ package config
 import "testing"
 
 func TestLoad(t *testing.T) {
-	t.Setenv("DATABASE_URL", "postgres://x")
+	t.Setenv("DATABASE_URL", "postgres://x\n")
 	t.Setenv("FIREBASE_PROJECT_ID", "ih-dev")
 	t.Setenv("SHARE_BASE_URL", "https://api.example.com/")
 	t.Setenv("FEATURE_SHARE_VIEW", "")
@@ -20,7 +20,7 @@ func TestLoad(t *testing.T) {
 	if len(cfg.FeatureCommitDisabledUseCases) != 2 || cfg.FeatureCommitDisabledUseCases[1] != "es_refine" {
 		t.Fatalf("disabled use cases = %v", cfg.FeatureCommitDisabledUseCases)
 	}
-	if cfg.ShareBaseURL != "https://api.example.com" || cfg.AppEnv != "dev" || cfg.Port != "8080" {
+	if cfg.DatabaseURL != "postgres://x" || cfg.ShareBaseURL != "https://api.example.com" || cfg.AppEnv != "dev" || cfg.Port != "8080" {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 }
