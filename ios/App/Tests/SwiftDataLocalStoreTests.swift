@@ -12,7 +12,9 @@ final class SwiftDataLocalStoreTests: XCTestCase {
 
     func testCacheRoundTripAndRemoveAll() throws {
         let store = try makeStore()
-        try store.save(Page(items: [AssetTag(id: "t1", name: "ガクチカ")]), for: .assetTags)
+        // AssetTag は BFF のレスポンスから作るモデルなので、テストでも JSON からデコードする
+        let tags = try JSONDecoder().decode([AssetTag].self, from: Data(#"[{"id":"t1","name":"ガクチカ"}]"#.utf8))
+        try store.save(Page(items: tags), for: .assetTags)
         XCTAssertEqual(try store.load(Page<AssetTag>.self, for: .assetTags)?.value.items.first?.name, "ガクチカ")
 
         try store.save(TextDraft(text: "下書き"), for: .esSection(sectionId: "s1"))
