@@ -352,7 +352,8 @@
 
 - ChatGPT・Gemini（無料版を含む）に実際にプロンプトを渡して得た回答を、`testdata/responses/<use_case>/<template_version>/` に fixture として保存する
   - fixture には実在の個人情報を入れない（共通テストデータから作ったプロンプトの回答のみ）
-- 各 fixture に期待する parse_result と取得件数を記録し、テーブル駆動テストで検証する
+- 各 fixture に期待する parse_result と取得件数を `testdata/responses/expected.json` に記録し、テーブル駆動テストで検証する（記録のない fixture はテスト失敗）
+  - プロンプトは共通テストデータから生成したゴールデンファイル（11.7.1）をそのまま外部AIに渡す。手順は `testdata/responses/README.md`
 - ケース：
   - PR-003: 全 fixture で期待どおりの parse_result と件数になる
   - PR-004: 旧バージョン（例：`qa-v1`）の fixture は、新バージョン追加後も解析できる（D10）

@@ -1,0 +1,134 @@
+{
+  "answer_review/review-v1/chatgpt_style.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 2,
+    "improvements": 2,
+    "improved": true,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "answer_review/review-v1/gemini_style_brackets.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 1,
+    "improvements": 1,
+    "improved": true,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "answer_review/review-v1/missing_answer_partial.txt": {
+    "result": "partial",
+    "items": 0,
+    "issues": 1,
+    "improvements": 1,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "es_generate/esdraft-v1/chatgpt_style.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": true
+  },
+  "es_refine/esrefine-v1/gemini_style.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": true
+  },
+  "qa_generate/qa-v1/chatgpt_style_markdown.txt": {
+    "result": "success",
+    "items": 2,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "qa_generate/qa-v1/gemini_style_fullwidth.txt": {
+    "result": "success",
+    "items": 2,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "qa_generate/qa-v1/no_markers_failed.txt": {
+    "result": "failed",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "qa_generate/qa-v1/truncated_partial.txt": {
+    "result": "partial",
+    "items": 2,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": false
+  },
+  "research_summarize/research-v1/chatgpt_style.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 3,
+    "idealSet": true,
+    "recentTopics": 1,
+    "textSet": true
+  },
+  "research_summarize/research-v1/only_two_partial.txt": {
+    "result": "partial",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 1,
+    "idealSet": true,
+    "recentTopics": 0,
+    "textSet": true
+  },
+  "summary_generate/summary-v1/chatgpt_style.txt": {
+    "result": "success",
+    "items": 0,
+    "issues": 0,
+    "improvements": 0,
+    "improved": false,
+    "highlights": 0,
+    "idealSet": false,
+    "recentTopics": 0,
+    "textSet": true
+  }
+}

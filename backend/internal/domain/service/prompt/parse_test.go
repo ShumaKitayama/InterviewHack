@@ -2,6 +2,7 @@
 package prompt
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -155,36 +156,92 @@ func TestParseLimits(t *testing.T) {
 	}
 }
 
-// 11.7: real-world response samples per use_case/template_version must keep parsing.
+// fixtureExpectation is the expected parse_result and item counts recorded per fixture (11.7.2).
+type fixtureExpectation struct {
+	Result       vo.ParseResult `json:"result"`
+	Items        int            `json:"items"`
+	Issues       int            `json:"issues"`
+	Improvements int            `json:"improvements"`
+	Improved     bool           `json:"improved"`
+	Highlights   int            `json:"highlights"`
+	IdealSet     bool           `json:"idealSet"`
+	RecentTopics int            `json:"recentTopics"`
+	TextSet      bool           `json:"textSet"`
+}
+
+func expectationOf(o ParseOutput) fixtureExpectation {
+	return fixtureExpectation{
+		Result:       o.Result,
+		Items:        len(o.Preview.Items),
+		Issues:       len(o.Preview.Issues),
+		Improvements: len(o.Preview.Improvements),
+		Improved:     o.Preview.ImprovedAnswerText != "",
+		Highlights:   len(o.Preview.Highlights),
+		IdealSet:     o.Preview.IdealCandidate != "",
+		RecentTopics: len(o.Preview.RecentTopics),
+		TextSet:      o.Preview.Text != "",
+	}
+}
+
+// 11.7.2 PR-003 / PR-004: every response sample under testdata/responses/<use_case>/<template_version>/
+// must parse to the parse_result and counts recorded in testdata/responses/expected.json.
 func TestParseFixtures(t *testing.T) {
-	dirs, _ := filepath.Glob(filepath.Join("testdata", "responses", "*", "*"))
-	if len(dirs) == 0 {
+	manifestPath := filepath.Join("testdata", "responses", "expected.json")
+	expected := map[string]fixtureExpectation{}
+	if b, err := os.ReadFile(manifestPath); err == nil {
+		if err := json.Unmarshal(b, &expected); err != nil {
+			t.Fatalf("parse %s: %v", manifestPath, err)
+		}
+	} else if !*update {
+		t.Fatalf("read %s: %v", manifestPath, err)
+	}
+
+	files, _ := filepath.Glob(filepath.Join("testdata", "responses", "*", "*", "*.txt"))
+	if len(files) == 0 {
 		t.Fatal("no response fixtures under testdata/responses")
 	}
-	for _, dir := range dirs {
+	actual := map[string]fixtureExpectation{}
+	for _, f := range files {
+		dir := filepath.Dir(f)
 		uc, version := vo.UseCase(filepath.Base(filepath.Dir(dir))), filepath.Base(dir)
-		files, _ := filepath.Glob(filepath.Join(dir, "*.txt"))
-		for _, f := range files {
-			t.Run(filepath.Join(string(uc), version, filepath.Base(f)), func(t *testing.T) {
-				b, err := os.ReadFile(f)
-				if err != nil {
-					t.Fatal(err)
-				}
-				want := vo.ParseSuccess
-				switch {
-				case strings.Contains(f, "partial"):
-					want = vo.ParsePartial
-				case strings.Contains(f, "failed"):
-					want = vo.ParseFailed
-				}
-				o, err := Parse(uc, version, string(b), ParseHints{})
-				if err != nil {
-					t.Fatal(err)
-				}
-				if o.Result != want {
-					t.Fatalf("result = %s, want %s (warnings %v)", o.Result, want, o.Warnings)
-				}
-			})
+		key := filepath.ToSlash(filepath.Join(string(uc), version, filepath.Base(f)))
+		t.Run(key, func(t *testing.T) {
+			b, err := os.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			o, err := Parse(uc, version, string(b), ParseHints{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := expectationOf(o)
+			actual[key] = got
+			if *update {
+				return
+			}
+			want, ok := expected[key]
+			if !ok {
+				t.Fatalf("no expectation for %s in %s (record it after reviewing the parse result; -update writes the current output)", key, manifestPath)
+			}
+			if got != want {
+				t.Fatalf("got %+v, want %+v (warnings %v)", got, want, o.Warnings)
+			}
+		})
+	}
+
+	if *update {
+		b, err := json.MarshalIndent(actual, "", "  ")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(manifestPath, append(b, '\n'), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	for key := range expected {
+		if _, ok := actual[key]; !ok {
+			t.Errorf("%s lists %s but the fixture file does not exist", manifestPath, key)
 		}
 	}
 }
