@@ -33,6 +33,11 @@ public struct TextDraft: Codable, Sendable, Equatable {
 public struct DraftRecord: Sendable, Equatable {
     public var key: DraftKey
     public var updatedAt: Date
+
+    public init(key: DraftKey, updatedAt: Date) {
+        self.key = key
+        self.updatedAt = updatedAt
+    }
 }
 
 public protocol DraftStore: Sendable {

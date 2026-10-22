@@ -36,6 +36,11 @@ public struct CachedValue<Value: Sendable>: Sendable {
     public var value: Value
     /// 最終同期日時（オフライン表示で使う。3.6.4）
     public var savedAt: Date
+
+    public init(value: Value, savedAt: Date) {
+        self.value = value
+        self.savedAt = savedAt
+    }
 }
 
 public protocol CacheStore: Sendable {
