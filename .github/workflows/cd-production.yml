@@ -2,7 +2,7 @@
 # 順序：DB マイグレーション → Docker build・push → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す）
 #
 # 事前に GitHub の Environment「prod」に次を登録する（README の「本番デプロイ」を参照）
-#   Required reviewers：自分（手動承認）
+#   手動承認：Actions からこのワークフローを実行する（無料プランでは Required reviewers が使えない。14.6.1）
 #   Secrets  ：PROD_DATABASE_URL（マイグレーション用。Neon main ブランチ）
 #   Variables：GCP_PROJECT_ID / GCP_REGION / GCP_WIF_PROVIDER / GCP_DEPLOY_SERVICE_ACCOUNT /
 #              GCP_ARTIFACT_REPOSITORY / CLOUD_RUN_SERVICE / CLOUD_RUN_DATABASE_URL_SECRET /
@@ -10,11 +10,6 @@
 name: CD Production
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/cd-production.yml"
   workflow_dispatch:
 
 concurrency:

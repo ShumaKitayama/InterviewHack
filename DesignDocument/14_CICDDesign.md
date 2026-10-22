@@ -92,6 +92,8 @@ CI/CD では以下を分離する：
 ### 14.6.1 本番（prod）へのデプロイ
 
 - GitHub Actions の `environment: prod` を使用し **手動承認必須**
+  - プランが Required reviewers に対応しているときは、そのレビュアー承認を待つ
+  - 非公開リポジトリの無料プランでは Required reviewers を作れない（2026-10-22 に確認）。その間は `workflow_dispatch`（Actions 画面からの手動実行）だけを起動条件にし、人が実行したときだけデプロイする
 - 承認後、次の順序で実行する（2.10.6）：
   1. DB マイグレーション（`backend/migrations` を `psql` で番号順に適用。後方互換かつ冪等なもの）
   2. バックエンド：Docker build → Artifact Registry に push → Cloud Run（service-prod）へデプロイ
@@ -101,7 +103,7 @@ CI/CD では以下を分離する：
      - トークンなしの `GET /me` が 401 を返す（認証ミドルウェアが有効であること）
      - Cloud Run のサービス設定で `APP_ENV=prod` になっていること（14.11。値以外は出さない）
      - 失敗したら以降のステップを止める
-- main への `backend/` の変更のマージ、または手動実行（`workflow_dispatch`）で起動し、`environment: prod` の承認を待つ
+- 起動は手動実行（`workflow_dispatch`）。Required reviewers が使えるプランになったら、main への `backend/` のマージでも起動し、`environment: prod` の承認を待つ
 - 失敗した場合：
   - 直前のリビジョンへロールバック（Cloud Run のリビジョン機能を使用）
 

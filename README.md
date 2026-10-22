@@ -144,7 +144,7 @@ cd backend && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 | --- | --- | --- |
 | `ci-backend.yml` | `backend/` を変えた PR | gofmt / vet / golangci-lint / govulncheck / arch_check / マイグレーション 2 回 / ユニット＋統合テスト / Docker build / RELEASE 埋め込み確認 |
 | `ci-ios.yml` | `ios/` を変えた PR | XcodeGen → シミュレータで `xcodebuild test`（署名なし、ダミーの plist） |
-| `cd-production.yml` | `backend/` の main マージ、または手動 | 承認待ち → マイグレーション → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す） |
+| `cd-production.yml` | Actions からの手動実行 | マイグレーション → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す） |
 
 ### 本番環境の準備（初回だけ）
 
@@ -180,7 +180,7 @@ gcloud iam service-accounts add-iam-policy-binding $SA --role=roles/iam.workload
 echo "GCP_WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github"
 ```
 
-4. **GitHub**：リポジトリの Settings → Environments で `prod` を作り、Required reviewers に自分を入れて、次を登録する
+4. **GitHub**：リポジトリの Settings → Environments で `prod` を作り、次を登録する。Required reviewers は、その機能が使えるプランのときだけ有効にする（無料の非公開リポジトリでは使えないため、デプロイは Actions からの手動実行にする）
 
 | 種類 | 名前 | 値 |
 | --- | --- | --- |
