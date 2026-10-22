@@ -112,6 +112,9 @@ RLS は使わない（D6、2.10.2）。代わりに、次のルールで越境�
   - Firebase Auth で、使わないサインイン方法を無効にする
   - dev と prod でプロジェクトを分ける
 - LLM の API キー、Stripe のキー、Supabase のキーは存在しない（D7 / D8）
+- GCP のサービスアカウントは用途ごとに分け、必要な権限だけを付ける（12.12.5）
+  - API の実行用（`interviewhack-api`）は DB のシークレットを読めるだけにする。プロジェクトの編集者権限を持つ Compute Engine の既定サービスアカウントは使わない
+  - コストガード（`costguard`）が変更できるのは API のサービスだけ。コストガードは認証必須で、呼べるのは Cloud Scheduler / Pub/Sub 用の `costguard-invoker` だけ
 
 ---
 

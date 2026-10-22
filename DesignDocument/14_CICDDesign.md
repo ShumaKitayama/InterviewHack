@@ -19,6 +19,7 @@
 - monorepo
   - `backend/`（Go + Gin、Docker、Cloud Run にデプロイ）
   - `ios/`（SwiftUI、Xcode プロジェクト。2.10.5）
+  - `ops/costguard/`（コスト上限で API を止めるコストガード。BFF とは別の Go モジュール。12.12）
   - `frontend/`（Vite + React）は廃止済み（2026-10-22 に削除。CI / CD の対象からも外した）
 
 ---
@@ -75,6 +76,11 @@ CI/CD では以下を分離する：
 - コード署名は行わない（テストのみ。配布はフェーズ2以降）
 - `GoogleService-Info-Dev.plist` はコミットしないため（5.12.2）、CI では形式だけのダミー値でその場に生成する（秘密情報を含まない）
 
+### 14.5.3 コストガード（ops/costguard/）
+
+- `ops/costguard/` に変更があるときだけ実行する（Linux ランナー）
+- gofmt、`go vet`、`golangci-lint`、`govulncheck`、`go test ./...`（Cloud Monitoring / Cloud Run Admin API はテスト用の HTTP サーバーで置き換える）、Docker build
+
 共通ゲート：
 
 - 依存関係の脆弱性チェック（backend：`govulncheck`）
@@ -95,8 +101,10 @@ CI/CD では以下を分離する：
   - プランが Required reviewers に対応しているときは、そのレビュアー承認を待つ
   - 非公開リポジトリの無料プランでは Required reviewers を作れない（2026-10-22 に確認）。その間は `workflow_dispatch`（Actions 画面からの手動実行）だけを起動条件にし、人が実行したときだけデプロイする
 - 承認後、次の順序で実行する（2.10.6）：
+  0. 事前確認：API がコストガードで停止中（手動スケーリング 0）なら、ここで失敗させる（停止の解除は人が判断する。12.12.6）
   1. DB マイグレーション（`backend/migrations` を `psql` で番号順に適用。後方互換かつ冪等なもの）
   2. バックエンド：Docker build → Artifact Registry に push → Cloud Run（service-prod）へデプロイ
+     - 最大インスタンス数 1、実行用サービスアカウントは `interviewhack-api`（12.2.3、12.12.5）
   3. スモークテスト
      - `GET /health`
      - 認証なしで叩けるチェック（存在しない共有トークンで `GET /s/{token}` が 404 を返す）
@@ -115,6 +123,11 @@ CI/CD では以下を分離する：
 
 - フェーズ1は CD を持たない。開発者が Xcode から実機へ直接インストールする
 - フェーズ2で、TestFlight へのアップロードを CI/CD に組み込むか検討する
+
+### 14.6.4 コストガード
+
+- 変更がまれなため、フェーズ1は CD を持たない。開発者が `ops/costguard/scripts/deploy.sh` で手動デプロイする（イメージは Git SHA でタグ付けする。14.9）
+- 初回だけ `ops/costguard/scripts/setup.sh` で、サービスアカウント・権限・Pub/Sub・予算・Cloud Scheduler・ログのアラート・Artifact Registry のクリーンアップポリシーを作る（何度実行しても同じ状態になるように書く）
 
 ---
 
@@ -155,6 +168,20 @@ CI/CD では以下を分離する：
 | `FEATURE_COMMIT_DISABLED_USE_CASES` | commit を止めるユースケース（カンマ区切り、既定は空。12.11） | いいえ |
 
 - Firebase ID トークンの検証は Google の公開鍵で行うため、Firebase のサービスアカウントキーは不要
+
+### 14.8.3 コストガード（Cloud Run。12.12）
+
+| 変数 | 内容 | 秘密 |
+|------|------|------|
+| `TARGET_PROJECT` / `TARGET_REGION` / `TARGET_SERVICE` | 停止する API のサービス | いいえ |
+| `MONITORED_PROJECTS` | 使用量を合計するプロジェクト（カンマ区切り。既定は `TARGET_PROJECT`） | いいえ |
+| `LIMIT_REQUESTS` | 当月のリクエスト数の閾値（無料枠の 90%） | いいえ |
+| `LIMIT_CPU_SECONDS` | 当月の vCPU 秒の閾値（無料枠の 90%） | いいえ |
+| `LIMIT_MEMORY_GIB_SECONDS` | 当月の GiB 秒の閾値（無料枠の 90%） | いいえ |
+| `BUDGET_STOP_RATIO` | 予算通知で停止する比率（既定 1.0） | いいえ |
+| `LOG_LEVEL` / `RELEASE` | バックエンドと同じ | いいえ |
+
+- コストガードは秘密情報を持たない。Google の API へは実行用サービスアカウントの権限で接続する（鍵ファイルは使わない）
 
 ### 14.8.2 iOS
 
@@ -202,6 +229,7 @@ CI/CD では以下を分離する：
 - dev の `DATABASE_URL` が prod の Cloud Run に入っていないかを確認する（`APP_ENV` と接続先ブランチの対応をスモークテストで検証）
 - Domain / Usecase にフレームワーク・SDK 依存を混入させない（アーキテクチャチェックで検出）
 - macOS ランナーを不要に動かさない（`ios/` のパスフィルタ）
+- コストガードで停止中の API に、CD がデプロイして停止を見えにくくしない（事前確認で失敗させる。14.6.1）
 
 ---
 
