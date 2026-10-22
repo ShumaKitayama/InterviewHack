@@ -3,6 +3,10 @@
 
 # Backend
 backend/api
+backend/.env
+
+# Firebase（5.12.2。公開識別子だがリポジトリには置かない）
+ios/App/Resources/GoogleService-Info*.plist
 
 # Frontend
 frontend/node_modules/
