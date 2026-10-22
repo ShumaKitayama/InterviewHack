@@ -1,0 +1,12 @@
+{
+  "id": "46123010-63c9-4302-af9b-fd04b5b6043a",
+  "companyId": "5f7a21ef-d3d2-46dd-9ff2-2326f5e13205",
+  "status": "not_started",
+  "deadline": "2026-12-01",
+  "assetIds": [
+    "7d6cecd7-6858-4c5b-9b00-a0d20428eb42"
+  ],
+  "researchMaterialIds": [],
+  "createdAt": "2026-10-22T04:12:34.096693+09:00",
+  "updatedAt": "2026-10-22T04:12:34.107037+09:00"
+}

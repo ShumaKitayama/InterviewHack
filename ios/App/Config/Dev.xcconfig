@@ -1,0 +1,7 @@
+// DesignDocument/5_FrontendDesign.md 5.12.1：Debug-Dev（ローカルの Go BFF）
+// URL の // は xcconfig のコメントと解釈されるため $() で区切る
+API_BASE_URL = http:/$()/localhost:8080
+APP_ENV = dev
+PRODUCT_BUNDLE_IDENTIFIER = jp.interviewhack.app.dev
+GOOGLE_SERVICE_INFO_PLIST = GoogleService-Info-Dev.plist
+INFOPLIST_FILE = App/Config/Info-Dev.plist

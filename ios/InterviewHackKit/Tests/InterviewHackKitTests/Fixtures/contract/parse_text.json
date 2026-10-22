@@ -1,0 +1,11 @@
+{
+  "sessionId": "26b60f7c-3557-4df4-aaef-f812eb4e06b0",
+  "parseResult": "success",
+  "detectedTemplateVersion": "esdraft-v1",
+  "preview": {
+    "text": "自由な文章"
+  },
+  "warnings": [
+    "文字数が指定（400字の±10%）の範囲外です（5字）"
+  ]
+}

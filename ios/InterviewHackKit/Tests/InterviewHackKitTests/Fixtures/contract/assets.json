@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "5461776a-73b5-405c-877a-304c476fc88f",
+      "type": "strength",
+      "title": "contractの粘り強さ",
+      "content": "障害を特定",
+      "tagIds": [],
+      "tagNames": [],
+      "createdAt": "2026-10-22T04:12:34.094193+09:00",
+      "updatedAt": "2026-10-22T04:12:34.094193+09:00"
+    }
+  ],
+  "nextCursor": "MjAyNi0xMC0yMVQxOToxMjozNC4wOTQxOTNafDU0NjE3NzZhLTczYjUtNDA1Yy04NzdhLTMwNGM0NzZmYzg4Zg"
+}

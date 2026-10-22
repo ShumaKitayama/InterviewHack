@@ -1,0 +1,16 @@
+{
+  "sessionId": "b08196e1-50ee-46b0-8327-27d121adaed5",
+  "parseResult": "success",
+  "detectedTemplateVersion": "research-v1",
+  "preview": {
+    "highlights": [
+      "a"
+    ],
+    "idealCandidate": "b",
+    "recentTopics": [
+      "c"
+    ],
+    "summaryText": "■ 魅力・特徴\n- a\n■ 求める人物像\nb\n■ 最近のトピック\n- c"
+  },
+  "warnings": []
+}

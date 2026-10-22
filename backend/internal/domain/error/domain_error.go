@@ -2,11 +2,13 @@
 package domainerror
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/interviewhack/backend/internal/domain/vo"
 )
 
+// DomainError carries an application error code and a user-facing message.
 type DomainError struct {
 	Code    vo.ErrorCode
 	Message string
@@ -17,50 +19,68 @@ func (e *DomainError) Error() string {
 	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
+// New creates a DomainError.
 func New(code vo.ErrorCode, message string) *DomainError {
 	return &DomainError{Code: code, Message: message}
 }
 
-func NewWithDetail(code vo.ErrorCode, message string, detail map[string]any) *DomainError {
-	return &DomainError{Code: code, Message: message, Detail: detail}
+// As extracts a DomainError from err.
+func As(err error) (*DomainError, bool) {
+	var de *DomainError
+	if errors.As(err, &de) {
+		return de, true
+	}
+	return nil, false
 }
 
-func ErrInsufficientCredits(balance, cost int) *DomainError {
-	return NewWithDetail(
-		vo.ErrorCodeInsufficientCredit,
-		"クレジット残高が不足しています",
-		map[string]any{"balance": balance, "cost": cost},
-	)
+// Is reports whether err is a DomainError with the given code.
+func Is(err error, code vo.ErrorCode) bool {
+	de, ok := As(err)
+	return ok && de.Code == code
 }
 
-func ErrInvalidPackage(packageID string) *DomainError {
-	return New(vo.ErrorCodeInvalidPackage, fmt.Sprintf("無効なパッケージです: %s", packageID))
-}
-
-func ErrDuplicateEvent(eventID string) *DomainError {
-	return New(vo.ErrorCodeDuplicateEvent, fmt.Sprintf("処理済みのイベントです: %s", eventID))
-}
-
-func ErrFeatureDisabled(feature string) *DomainError {
-	return New(vo.ErrorCodeFeatureDisabled, fmt.Sprintf("この機能は無効です: %s", feature))
-}
-
-func ErrNotFound(resource string) *DomainError {
-	return New(vo.ErrorCodeNotFound, fmt.Sprintf("%s が見つかりません", resource))
-}
-
+// ErrValidation is a 400 error for malformed input (JSON, uuid, missing fields).
 func ErrValidation(message string) *DomainError {
 	return New(vo.ErrorCodeValidationError, message)
+}
+
+// ErrUnprocessable is a 422 error for business-rule violations (ranges, limits).
+func ErrUnprocessable(message string) *DomainError {
+	return New(vo.ErrorCodeUnprocessable, message)
 }
 
 func ErrUnauthorized() *DomainError {
 	return New(vo.ErrorCodeUnauthorized, "認証が必要です")
 }
 
-func ErrForbidden() *DomainError {
-	return New(vo.ErrorCodeForbidden, "アクセスが許可されていません")
+func ErrNotFound(resource string) *DomainError {
+	return New(vo.ErrorCodeNotFound, fmt.Sprintf("%s が見つかりません", resource))
 }
 
-func ErrInvalidStatusTransition(from, to string) *DomainError {
-	return New(vo.ErrorCodeConflict, fmt.Sprintf("無効な状態遷移です: %s -> %s", from, to))
+func ErrSessionNotFound() *DomainError {
+	return New(vo.ErrorCodeSessionNotFound, "AI連携のセッションが見つかりません")
+}
+
+func ErrSessionStateConflict(status string) *DomainError {
+	return &DomainError{
+		Code:    vo.ErrorCodeSessionStateConflict,
+		Message: "このセッションは現在の状態では操作できません",
+		Detail:  map[string]any{"status": status},
+	}
+}
+
+func ErrConflict(message string) *DomainError {
+	return New(vo.ErrorCodeConflict, message)
+}
+
+func ErrShareLinkGone() *DomainError {
+	return New(vo.ErrorCodeShareLinkGone, "このリンクは無効です")
+}
+
+func ErrFeatureDisabled(feature string) *DomainError {
+	return &DomainError{
+		Code:    vo.ErrorCodeFeatureDisabled,
+		Message: "この機能は一時停止中です",
+		Detail:  map[string]any{"feature": feature},
+	}
 }

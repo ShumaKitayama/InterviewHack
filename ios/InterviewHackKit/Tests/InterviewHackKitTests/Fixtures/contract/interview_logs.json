@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "id": "4467cad1-0fec-4fc2-9222-25045ce59aba",
+      "interviewId": "a0b907db-e462-463f-b03a-2c1ecfbcf409",
+      "questionText": "ガクチカは？",
+      "answerText": "学園祭です",
+      "selfEvaluation": null,
+      "aiFeedbackText": null,
+      "aiImprovedAnswerText": null,
+      "score": null,
+      "createdAt": "2026-10-22T04:12:34.101147+09:00",
+      "updatedAt": "2026-10-22T04:12:34.101147+09:00"
+    }
+  ],
+  "nextCursor": null
+}

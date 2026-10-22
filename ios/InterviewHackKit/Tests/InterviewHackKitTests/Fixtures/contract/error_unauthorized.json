@@ -1,0 +1,6 @@
+{
+  "status": "error",
+  "code": "UNAUTHORIZED",
+  "message": "認証が必要です",
+  "requestId": "6a8a28b7-41ff-4636-9ca9-b273c21ac7e3"
+}

@@ -2,77 +2,83 @@
 package presenter
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	domainerror "github.com/interviewhack/backend/internal/domain/error"
 	"github.com/interviewhack/backend/internal/domain/vo"
+	"github.com/interviewhack/backend/internal/port/repository"
 )
 
+// ErrorBody is the unified error response (7.7.1).
 type ErrorBody struct {
 	Status    string         `json:"status"`
 	Code      string         `json:"code"`
 	Message   string         `json:"message"`
 	Detail    map[string]any `json:"detail,omitempty"`
-	RequestID string         `json:"request_id,omitempty"`
+	RequestID string         `json:"requestId,omitempty"`
 }
 
-func RespondError(c *gin.Context, err error) {
-	requestID, _ := c.Get("request_id")
-	reqIDStr, _ := requestID.(string)
+// ErrorCodeKey is the gin context key the logger reads error_code from.
+const ErrorCodeKey = "error_code"
 
-	if domErr, ok := err.(*domainerror.DomainError); ok {
-		status := mapCodeToHTTPStatus(domErr.Code)
-		c.JSON(status, ErrorBody{
-			Status:    "error",
-			Code:      domErr.Code.String(),
-			Message:   domErr.Message,
-			Detail:    domErr.Detail,
-			RequestID: reqIDStr,
-		})
-		return
-	}
-
-	c.JSON(http.StatusInternalServerError, ErrorBody{
-		Status:    "error",
-		Code:      vo.ErrorCodeInternalError.String(),
-		Message:   "内部エラーが発生しました",
-		RequestID: reqIDStr,
-	})
+func requestID(c *gin.Context) string {
+	v, _ := c.Get("request_id")
+	s, _ := v.(string)
+	return s
 }
 
-func RespondValidationError(c *gin.Context, err error) {
-	requestID, _ := c.Get("request_id")
-	reqIDStr, _ := requestID.(string)
-
-	c.JSON(http.StatusBadRequest, ErrorBody{
-		Status:    "error",
-		Code:      vo.ErrorCodeValidationError.String(),
-		Message:   err.Error(),
-		RequestID: reqIDStr,
-	})
-}
-
-// DesignDocument/7_BackendDesign.md 7.7.2 HTTPステータスとエラーコード対応表
-func mapCodeToHTTPStatus(code vo.ErrorCode) int {
+// Status maps an error code to an HTTP status (7.7.2).
+func Status(code vo.ErrorCode) int {
 	switch code {
-	case vo.ErrorCodeValidationError, vo.ErrorCodeInvalidPackage:
+	case vo.ErrorCodeValidationError:
 		return http.StatusBadRequest
+	case vo.ErrorCodeUnprocessable:
+		return http.StatusUnprocessableEntity
 	case vo.ErrorCodeUnauthorized:
 		return http.StatusUnauthorized
 	case vo.ErrorCodeForbidden:
 		return http.StatusForbidden
-	case vo.ErrorCodeNotFound:
+	case vo.ErrorCodeNotFound, vo.ErrorCodeSessionNotFound:
 		return http.StatusNotFound
-	case vo.ErrorCodeConflict, vo.ErrorCodeDuplicateEvent:
+	case vo.ErrorCodeConflict, vo.ErrorCodeSessionStateConflict:
 		return http.StatusConflict
+	case vo.ErrorCodeShareLinkGone:
+		return http.StatusGone
 	case vo.ErrorCodeRateLimited:
 		return http.StatusTooManyRequests
-	case vo.ErrorCodeInsufficientCredit:
-		return http.StatusPaymentRequired
-	case vo.ErrorCodeOpenAIError, vo.ErrorCodeStripeError:
-		return http.StatusBadGateway
+	case vo.ErrorCodeFeatureDisabled:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
+}
+
+// RespondError writes the error. Unknown errors become 500 without internal detail.
+func RespondError(c *gin.Context, err error) {
+	de, ok := domainerror.As(err)
+	if !ok {
+		switch {
+		case errors.Is(err, repository.ErrNotFound):
+			de = domainerror.ErrNotFound("リソース")
+		case errors.Is(err, repository.ErrInvalidCursor):
+			de = domainerror.ErrValidation("cursor が不正です")
+		case errors.Is(err, repository.ErrConflict):
+			de = domainerror.ErrConflict("リソースが重複しています")
+		default:
+			slog.Error("internal error", "request_id", requestID(c), "error", err.Error())
+			de = domainerror.New(vo.ErrorCodeInternalError, "内部エラーが発生しました")
+		}
+	}
+	c.Set(ErrorCodeKey, de.Code.String())
+	c.AbortWithStatusJSON(Status(de.Code), ErrorBody{
+		Status:    "error",
+		Code:      de.Code.String(),
+		Message:   de.Message,
+		Detail:    de.Detail,
+		RequestID: requestID(c),
+	})
 }

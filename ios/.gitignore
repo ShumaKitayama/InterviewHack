@@ -1,0 +1,10 @@
+# SwiftPM / Xcode build outputs
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcodeproj/
+!project.yml
+
+# Firebase config (DesignDocument/5_FrontendDesign.md 5.12.2): keep local only
+GoogleService-Info*.plist

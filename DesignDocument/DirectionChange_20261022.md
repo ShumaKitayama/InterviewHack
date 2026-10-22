@@ -324,6 +324,13 @@ backend/
   - API：`GET` / `POST /es-sections/{id}/versions`、`POST /es-sections/{id}/versions/{versionId}/restore`
   - 画面：S-ES-05（版の履歴）を追加
   - 反映先：1.1.4、2.2.6 / 2.2.6.1 / 2.3 / 2.4.3、3.3 / 3.5.5 / 3.5.6.1、7.5.3 / 7.5.5、8章・dbml・dbdiagram、11章（IT-DB-008、IT-VER-001〜006）
+- 実装時に確定した API の補足（2026-10-22、7.5.5 / 7.2.3 に反映済み）
+  - `GET /prompt-sessions/{id}` を追加する（7.6.1 の「GET でセッションを確認」に使う）
+  - `POST /prompt-sessions` と `GET .../prompt` の応答に `warnings` を含める（4.3.5 の長さ警告）
+  - 未完了一覧の項目に `targetLabel`（対象の表示名）を含める
+  - `research_summarize` の preview に、保存用に整形した `summaryText` を含める
+  - Go のパッケージに `domain/service/session`、`domain/service/es`、`infra/system`、`internal/app`（DI）を追加する
+  - 契約テスト：Go の統合テストが実レスポンスを `ios/InterviewHackKit/Tests/InterviewHackKitTests/Fixtures/contract` に書き出し、Swift のテストがデコードできることを検証する（11.4.2）
 - 未完了一覧の取得：`GET /prompt-sessions?status=created,pasted`（`status` はカンマ区切りで複数指定できる）。2.10.3 も更新済み
 - 解析しないユースケース（`summary_generate` / `es_generate` / `es_refine`）の `parse_result` は `success`。`null` は未解析（`created`）のときだけ
 - 共有ページの CSP は `default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'` で確定する（7.5.6、9章、11章 IT-SH-002）

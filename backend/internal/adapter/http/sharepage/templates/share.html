@@ -1,0 +1,25 @@
+{{define "share.html"}}<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}}</title>
+{{template "style"}}
+</head>
+<body>
+<main>
+<header>
+<p class="label">ES の共有（閲覧のみ）</p>
+{{with .CompanyName}}<h1>{{.}}</h1>{{else}}<h1>ES の共有</h1>{{end}}
+</header>
+{{range .Sections}}
+<section>
+<h2>{{.Title}}</h2>
+{{range paragraphs .Body}}<p>{{.}}</p>{{end}}
+</section>
+{{end}}
+<footer>このページは共有された時点の内容です。Interview Hack</footer>
+</main>
+</body>
+</html>{{end}}

@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "sessionId": "a7ba1af6-cc26-4ad3-91e9-0456b28c9851",
+      "useCase": "qa_generate",
+      "templateVersion": "qa-v1",
+      "status": "pasted",
+      "parseResult": "success",
+      "companyId": "5f7a21ef-d3d2-46dd-9ff2-2326f5e13205",
+      "esProjectId": null,
+      "esSectionId": null,
+      "interviewId": null,
+      "interviewLogId": null,
+      "targetLabel": "株式会社contract",
+      "createdAt": "2026-10-22T04:12:34.116119+09:00",
+      "pastedAt": "2026-10-22T04:12:34+09:00",
+      "completedAt": null
+    }
+  ],
+  "nextCursor": null
+}

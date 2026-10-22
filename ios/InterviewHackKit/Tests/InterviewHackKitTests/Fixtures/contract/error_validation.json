@@ -1,0 +1,6 @@
+{
+  "status": "error",
+  "code": "VALIDATION_ERROR",
+  "message": "type が不正です",
+  "requestId": "ed0cd33d-9ea4-4453-8954-79715ea99c38"
+}

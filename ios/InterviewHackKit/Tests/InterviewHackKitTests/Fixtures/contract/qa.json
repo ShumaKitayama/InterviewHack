@@ -1,0 +1,14 @@
+{
+  "id": "38450fc4-5111-46f3-9d8e-474e1c3f83e6",
+  "companyId": null,
+  "questionText": "Q",
+  "answerText": "A",
+  "sourceType": "pre_generated",
+  "isFavorite": false,
+  "reviewStatus": "new",
+  "assetIds": [
+    "7d6cecd7-6858-4c5b-9b00-a0d20428eb42"
+  ],
+  "createdAt": "2026-10-22T04:12:34.113414+09:00",
+  "updatedAt": "2026-10-22T04:12:34.113414+09:00"
+}
