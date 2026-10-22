@@ -1,0 +1,17 @@
+{
+  "sessionId": "a7ba1af6-cc26-4ad3-91e9-0456b28c9851",
+  "parseResult": "success",
+  "detectedTemplateVersion": "qa-v1",
+  "preview": {
+    "items": [
+      {
+        "questionText": "q",
+        "answerText": "a",
+        "intentText": "i"
+      }
+    ]
+  },
+  "warnings": [
+    "質問数が指定（10問）と違います（1問）"
+  ]
+}

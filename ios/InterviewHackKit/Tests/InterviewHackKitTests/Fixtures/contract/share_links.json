@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "f7c25511-fb1b-4131-80a7-2c757902146a",
+      "sectionTitles": [
+        "志望動機"
+      ],
+      "showCompanyName": false,
+      "expiresAt": "2026-10-29T04:12:34+09:00",
+      "revokedAt": null,
+      "createdAt": "2026-10-22T04:12:34.128821+09:00",
+      "isActive": true
+    }
+  ]
+}

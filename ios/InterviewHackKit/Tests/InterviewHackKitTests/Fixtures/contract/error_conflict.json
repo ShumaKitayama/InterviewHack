@@ -1,0 +1,9 @@
+{
+  "status": "error",
+  "code": "SESSION_STATE_CONFLICT",
+  "message": "このセッションは現在の状態では操作できません",
+  "detail": {
+    "status": "saved"
+  },
+  "requestId": "881c8383-7eb4-42d7-a241-b8f58451f3dc"
+}

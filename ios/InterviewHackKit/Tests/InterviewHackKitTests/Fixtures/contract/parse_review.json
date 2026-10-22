@@ -1,0 +1,15 @@
+{
+  "sessionId": "1a46c7e1-a2d7-48d1-8c42-83fbb7f5822f",
+  "parseResult": "success",
+  "detectedTemplateVersion": "review-v1",
+  "preview": {
+    "improvedAnswerText": "z",
+    "improvements": [
+      "y"
+    ],
+    "issues": [
+      "x"
+    ]
+  },
+  "warnings": []
+}

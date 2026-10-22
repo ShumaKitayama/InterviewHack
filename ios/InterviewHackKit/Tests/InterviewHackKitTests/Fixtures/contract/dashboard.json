@@ -1,0 +1,85 @@
+{
+  "upcomingInterviews": [
+    {
+      "id": "a0b907db-e462-463f-b03a-2c1ecfbcf409",
+      "companyId": "5f7a21ef-d3d2-46dd-9ff2-2326f5e13205",
+      "interviewDate": "2026-10-24",
+      "phase": null,
+      "result": "pending",
+      "memo": null,
+      "createdAt": "2026-10-22T04:12:34.100068+09:00",
+      "updatedAt": "2026-10-22T04:12:34.112136+09:00"
+    }
+  ],
+  "latestSummary": {
+    "id": "1dc74f1f-dfd5-440d-925c-fe595e18d692",
+    "content": "- 結論から",
+    "sourceInterviewId": null,
+    "createdAt": "2026-10-22T04:12:34.126841+09:00"
+  },
+  "recentQa": [
+    {
+      "id": "55c53405-debb-44d8-8020-20fe82070e0c",
+      "companyId": "5f7a21ef-d3d2-46dd-9ff2-2326f5e13205",
+      "questionText": "q",
+      "answerText": "a",
+      "sourceType": "pre_generated",
+      "isFavorite": false,
+      "reviewStatus": "new",
+      "assetIds": [
+        "7d6cecd7-6858-4c5b-9b00-a0d20428eb42"
+      ],
+      "createdAt": "2026-10-22T04:12:34.119798+09:00",
+      "updatedAt": "2026-10-22T04:12:34.119798+09:00"
+    },
+    {
+      "id": "38450fc4-5111-46f3-9d8e-474e1c3f83e6",
+      "companyId": null,
+      "questionText": "Q",
+      "answerText": "A",
+      "sourceType": "pre_generated",
+      "isFavorite": false,
+      "reviewStatus": "new",
+      "assetIds": [
+        "7d6cecd7-6858-4c5b-9b00-a0d20428eb42"
+      ],
+      "createdAt": "2026-10-22T04:12:34.113414+09:00",
+      "updatedAt": "2026-10-22T04:12:34.113414+09:00"
+    }
+  ],
+  "recentInterviewLogs": [
+    {
+      "id": "4467cad1-0fec-4fc2-9222-25045ce59aba",
+      "interviewId": "a0b907db-e462-463f-b03a-2c1ecfbcf409",
+      "questionText": "ガクチカは？",
+      "answerText": "学園祭です",
+      "selfEvaluation": null,
+      "aiFeedbackText": "x",
+      "aiImprovedAnswerText": "z",
+      "score": null,
+      "createdAt": "2026-10-22T04:12:34.101147+09:00",
+      "updatedAt": "2026-10-22T04:12:34.12285+09:00"
+    }
+  ],
+  "pendingPromptSessions": {
+    "count": 1,
+    "items": [
+      {
+        "sessionId": "b08196e1-50ee-46b0-8327-27d121adaed5",
+        "useCase": "research_summarize",
+        "templateVersion": "research-v1",
+        "status": "pasted",
+        "parseResult": "success",
+        "companyId": "5f7a21ef-d3d2-46dd-9ff2-2326f5e13205",
+        "esProjectId": null,
+        "esSectionId": null,
+        "interviewId": null,
+        "interviewLogId": null,
+        "targetLabel": "株式会社contract",
+        "createdAt": "2026-10-22T04:12:34.123907+09:00",
+        "pastedAt": "2026-10-22T04:12:34+09:00",
+        "completedAt": null
+      }
+    ]
+  }
+}
