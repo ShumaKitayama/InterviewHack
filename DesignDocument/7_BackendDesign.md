@@ -60,6 +60,8 @@ backend/
       service/
         prompt/          # テンプレート生成と解析（純粋関数、use_case × バージョン）
         share/           # 共有トークンとスナップショットのルール
+        session/         # prompt_sessions の状態遷移と 7 日の放置判定
+        es/              # ES ステータスの自動遷移（not_started → draft）と版の保持数
     usecase/             # application layer
       account/ asset/ company/ research/ es/ interview/ qa/ dashboard/ prompt/ share/
     port/                # interfaces
@@ -75,8 +77,10 @@ backend/
     infra/
       postgres/          # pgx
       firebase/          # ID トークン検証
+      system/            # TokenGenerator（crypto/rand）、Clock、IDGenerator の実装
       logging/
       config/
+    app/                 # DI（cmd/api と統合テストが同じ依存グラフを使う）
 ```
 
 備考：
@@ -241,14 +245,21 @@ use_case と template_version は 2.10.1 に従う。
     - `options`（use_case ごと。例：`questionCount`（default 10）、`strictness`（`normal` | `hard`）、`instructions`（ES 推敲の指示文））
   - Res（201）:
     - `sessionId`、`templateVersion`、`promptText`
+    - `warnings`：string[]（例：プロンプトが推奨 8,000 字を超える。4.3.5）
   - 副作用：`prompt_sessions` を `status = created` で作成する。`input_refs` には ID とオプションだけを保存し、プロンプト本文は保存しない
   - 失敗：400 `VALIDATION_ERROR`（必須の対象 ID がない、未知の useCase）、404 `NOT_FOUND`（対象や資産が他人のもの・存在しない）
 
 - GET /prompt-sessions?status=created,pasted
   - 目的：未完了の AI連携の一覧（続きから再開）。「未完了」は `created` と `pasted` を指す
   - `status` は `created` / `pasted` / `saved` / `abandoned` を指定できる（カンマ区切りで複数指定可）
-  - 200: `{ items: [{ sessionId, useCase, templateVersion, status, 対象の表示名, createdAt }], nextCursor }`
+  - 200: `{ items: [{ sessionId, useCase, templateVersion, status, parseResult, 対象 ID, targetLabel, createdAt, pastedAt, completedAt }], nextCursor }`
+    - `targetLabel`（対象の表示名）：ESセクション名、面接ログの質問文、企業名の順で、最初にあるもの
   - 一覧取得時に、作成から 7 日を過ぎた `created` / `pasted` のセッションを `abandoned` に更新する（7.9）
+
+- GET /prompt-sessions/{id}
+  - 目的：セッション 1 件の状態確認（commit の 409 を受けたクライアントが `saved` かどうかを確かめる。7.6.1）
+  - 200: 一覧の項目と同じ形
+  - 失敗：404 `SESSION_NOT_FOUND`
 
 - GET /prompt-sessions/{id}/prompt
   - 目的：プロンプトの再表示
@@ -274,7 +285,7 @@ use_case と template_version は 2.10.1 に従う。
 |----------|---------------|
 | `qa_generate` | `{ items: [{ questionText, answerText, intentText }] }` |
 | `answer_review` | `{ issues: string[], improvements: string[], improvedAnswerText }` |
-| `research_summarize` | `{ highlights: string[], idealCandidate, recentTopics: string[] }` |
+| `research_summarize` | `{ highlights: string[], idealCandidate, recentTopics: string[], summaryText }`（`summaryText` は 3 つの見出しを付けて整形した保存用テキスト。4.2.4） |
 | `summary_generate` / `es_generate` / `es_refine` | `{ text }`（形式行を取り除いた全文） |
 
 - POST /prompt-sessions/{id}/commit

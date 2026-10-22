@@ -267,6 +267,12 @@
 
 ---
 
+### 11.4.2 契約テスト（BFF ↔ iOS）
+
+- IOS-CONTRACT-001: BFF の統合テスト（`TestContractFixtures`）が、主要エンドポイントの実レスポンスを JSON fixture として書き出す（`CONTRACT_OUT` を指定したとき）
+- IOS-CONTRACT-002: iOS の `ContractTests` が、すべての fixture を Swift のモデルでデコードできる（キー名・型・日時形式・エラー形式の食い違いを検出する）
+- API を変更したら fixture を再生成し、両方のテストを通す
+
 ## 11.5 E2Eテスト（実機・手動チェックリスト）
 
 開発者の実機で、リリース前（11.9）に毎回実施する。

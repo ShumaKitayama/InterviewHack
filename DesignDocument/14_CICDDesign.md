@@ -19,7 +19,7 @@
 - monorepo
   - `backend/`（Go + Gin、Docker、Cloud Run にデプロイ）
   - `ios/`（SwiftUI、Xcode プロジェクト。2.10.5）
-  - `frontend/`（Vite + React）は廃止予定（コード移行の段階で削除する。削除までは CI 対象から外す）
+  - `frontend/`（Vite + React）は廃止済み（2026-10-22 に削除。CI / CD の対象からも外した）
 
 ---
 
@@ -70,8 +70,10 @@ CI/CD では以下を分離する：
 
 - `ios/` に変更があるときだけ実行する
   - macOS ランナーは Linux ランナーより無料枠の消費が大きいため（倍率は公式で要確認）
-- macOS ランナーで `xcodebuild test`（シミュレータ）
+- macOS ランナーで XcodeGen によりプロジェクトを生成し、`xcodebuild test`（シミュレータ）を実行する
+  - App ターゲットの単体テストと `InterviewHackKit` のテストを、同じスキームでまとめて実行する
 - コード署名は行わない（テストのみ。配布はフェーズ2以降）
+- `GoogleService-Info-Dev.plist` はコミットしないため（5.12.2）、CI では形式だけのダミー値でその場に生成する（秘密情報を含まない）
 
 共通ゲート：
 
@@ -96,7 +98,10 @@ CI/CD では以下を分離する：
   3. スモークテスト
      - `GET /health`
      - 認証なしで叩けるチェック（存在しない共有トークンで `GET /s/{token}` が 404 を返す）
+     - トークンなしの `GET /me` が 401 を返す（認証ミドルウェアが有効であること）
+     - Cloud Run のサービス設定で `APP_ENV=prod` になっていること（14.11。値以外は出さない）
      - 失敗したら以降のステップを止める
+- main への `backend/` の変更のマージ、または手動実行（`workflow_dispatch`）で起動し、`environment: prod` の承認を待つ
 - 失敗した場合：
   - 直前のリビジョンへロールバック（Cloud Run のリビジョン機能を使用）
 
