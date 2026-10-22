@@ -1,55 +1,118 @@
-# DesignDocument/14_CICDDesign.md 14.6.2 本番デプロイ（手動承認必須）
+# DesignDocument/14_CICDDesign.md 14.6.1 本番デプロイ（手動承認必須）/ 14.7 シークレット / 14.10 ロールバック
+# 順序：DB マイグレーション → Docker build・push → Cloud Run デプロイ → スモークテスト（失敗時は直前のリビジョンへ戻す）
+#
+# 事前に GitHub の Environment「prod」に次を登録する（README の「本番デプロイ」を参照）
+#   Required reviewers：自分（手動承認）
+#   Secrets  ：PROD_DATABASE_URL（マイグレーション用。Neon main ブランチ）
+#   Variables：GCP_PROJECT_ID / GCP_REGION / GCP_WIF_PROVIDER / GCP_DEPLOY_SERVICE_ACCOUNT /
+#              GCP_ARTIFACT_REPOSITORY / CLOUD_RUN_SERVICE / CLOUD_RUN_DATABASE_URL_SECRET /
+#              FIREBASE_PROJECT_ID / SHARE_BASE_URL
 name: CD Production
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/cd-production.yml"
   workflow_dispatch:
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
 
 jobs:
   deploy-backend-prod:
     runs-on: ubuntu-latest
     environment: prod
-    defaults:
-      run:
-        working-directory: backend
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation（14.7.1）
+    env:
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/interviewhack-api:${{ github.sha }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: |
-          docker build \
-            --build-arg RELEASE=${{ github.sha }} \
-            -t interviewhack-backend:${{ github.sha }} .
-
-      # TODO: Push to Artifact Registry / GCR
-      # TODO: Deploy to Cloud Run (service-prod)
-      # TODO: Run DB migrations (idempotent)
-
-      - name: Smoke test placeholder
-        run: echo "TODO - curl health endpoint on prod"
-
-  deploy-frontend-prod:
-    runs-on: ubuntu-latest
-    environment: prod
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      - run: npm ci
+      - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build
-        run: npm run build
+      # 14.10.1：失敗時に戻す先を、デプロイ前に記録する（初回デプロイでは空）
+      - name: Record current revision
+        id: previous
+        run: |
+          REVISION=$(gcloud run services describe "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --region "${{ vars.GCP_REGION }}" --format 'value(status.latestReadyRevisionName)' 2>/dev/null || true)
+          echo "revision=${REVISION}" >> "$GITHUB_OUTPUT"
+          echo "previous revision: ${REVISION:-<none>}"
+
+      # 1. DB マイグレーション（後方互換かつ冪等。12.4）
+      - name: Install psql
+        run: sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+
+      - name: Migrate
         env:
-          VITE_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
-          VITE_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
-          VITE_APP_ORIGIN: ${{ secrets.PROD_APP_ORIGIN }}
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: bash backend/scripts/migrate.sh
 
-      # TODO: Deploy to Cloudflare Pages (prod)
+      # 2. Docker build → Artifact Registry に push（Git SHA でタグ付け。14.9）
+      - name: Build and push image
+        run: |
+          gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+          docker build --build-arg RELEASE=${{ github.sha }} -t "$IMAGE" backend
+          docker push "$IMAGE"
+
+      # 3. Cloud Run（service-prod）へデプロイ。DATABASE_URL は Secret Manager から渡す（14.7.2 / 14.8.1）
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ env.IMAGE }}
+          flags: --allow-unauthenticated --max-instances=2
+          env_vars: |
+            APP_ENV=prod
+            LOG_LEVEL=info
+            RELEASE=${{ github.sha }}
+            FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}
+            SHARE_BASE_URL=${{ vars.SHARE_BASE_URL }}
+            FEATURE_SHARE_VIEW=on
+            FEATURE_SHARE_CREATE=on
+          secrets: |
+            DATABASE_URL=${{ vars.CLOUD_RUN_DATABASE_URL_SECRET }}:latest
+
+      # 4. スモークテスト（14.6.1 / 14.11）
+      - name: Smoke test
+        env:
+          SERVICE_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          check() {
+            local path="$1" expected="$2" actual
+            actual=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "${SERVICE_URL}${path}")
+            echo "GET ${path} -> ${actual} (expected ${expected})"
+            [ "$actual" = "$expected" ]
+          }
+          # Neon のコールドスタートを考慮して /health は数回まで待つ
+          for i in 1 2 3 4 5; do check /health 200 && break || { [ "$i" = 5 ] && exit 1; sleep 5; }; done
+          check /s/smoke-test-nonexistent-token 404
+          check /me 401
+          # 14.11：prod のサービスに APP_ENV=prod が入っていること（値以外は出さない）
+          APP_ENV_VALUE=$(gcloud run services describe "${{ vars.CLOUD_RUN_SERVICE }}" --region "${{ vars.GCP_REGION }}" \
+            --format json | python3 -c 'import json,sys; env=json.load(sys.stdin)["spec"]["template"]["spec"]["containers"][0].get("env", []); print(next((e.get("value","") for e in env if e["name"]=="APP_ENV"), ""))')
+          echo "APP_ENV=${APP_ENV_VALUE}"
+          [ "$APP_ENV_VALUE" = "prod" ]
+
+      # 14.10.1：失敗したら直前のリビジョンへトラフィックを戻す
+      - name: Roll back on failure
+        if: failure() && steps.previous.outputs.revision != ''
+        run: |
+          gcloud run services update-traffic "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --to-revisions "${{ steps.previous.outputs.revision }}=100"
