@@ -2,29 +2,21 @@
 package middleware
 
 import (
+	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/interviewhack/backend/internal/adapter/http/presenter"
 )
 
+// Recovery turns panics into 500 INTERNAL_ERROR without leaking details.
 func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {
-				requestID, _ := c.Get("request_id")
-				slog.Error("panic recovered",
-					"panic", r,
-					"request_id", requestID,
-					"path", c.Request.URL.Path,
-				)
-				c.JSON(http.StatusInternalServerError, presenter.ErrorBody{
-					Status:  "error",
-					Code:    "INTERNAL_ERROR",
-					Message: "内部エラーが発生しました",
-				})
-				c.Abort()
+				slog.Error("panic recovered", "request_id", c.GetString("request_id"), "path", c.FullPath(), "panic", fmt.Sprint(r))
+				presenter.RespondError(c, fmt.Errorf("panic"))
 			}
 		}()
 		c.Next()
