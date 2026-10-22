@@ -37,6 +37,17 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
+      # 14.6.1 の 0：コストガードで停止中（手動スケーリング 0）ならデプロイしない。再開は人が判断する（12.12.6）
+      - name: Check the API is not stopped by the cost guard
+        run: |
+          STATE=$(gcloud run services describe "${{ vars.CLOUD_RUN_SERVICE }}" --region "${{ vars.GCP_REGION }}" \
+            --format json 2>/dev/null | python3 -c 'import json,sys; a=json.load(sys.stdin).get("metadata",{}).get("annotations",{}); print("stopped" if a.get("run.googleapis.com/scalingMode")=="manual" and a.get("run.googleapis.com/manualInstanceCount","0")=="0" else "running")' || echo running)
+          echo "service state: ${STATE}"
+          if [ "$STATE" = "stopped" ]; then
+            echo "::error::The API is stopped by the cost guard. Resume it manually first (DesignDocument/12_Operation.md 12.12.6)."
+            exit 1
+          fi
+
       # 14.10.1：失敗時に戻す先を、デプロイ前に記録する（初回デプロイでは空）
       - name: Record current revision
         id: previous
@@ -70,7 +81,8 @@ jobs:
           service: ${{ vars.CLOUD_RUN_SERVICE }}
           region: ${{ vars.GCP_REGION }}
           image: ${{ env.IMAGE }}
-          flags: --allow-unauthenticated --max-instances=2
+          # 実行用サービスアカウントはサービスと同名（ops/costguard/scripts/setup.sh が作る。12.12.5）
+          flags: --allow-unauthenticated --max-instances=1 --service-account=${{ vars.CLOUD_RUN_SERVICE }}@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
           env_vars: |
             APP_ENV=prod
             LOG_LEVEL=info
